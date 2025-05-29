@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Principal - Colegio Pablo Neruda</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="sidebar">
+    <h2>MENÚ</h2>
+    <button class="menu-button" onclick="cargarVista('asignaturas')">Asignaturas</button>
+    <button class="menu-button" onclick="cargarVista('docentes')">Docentes</button>
+    <button class="menu-button" onclick="cargarVista('aulas')">Aulas</button>
+    <button class="menu-button" onclick="cargarVista('grupos')">Grupos académicos</button>
+    <button class="menu-button" onclick="cargarVista('horarios')">Generar horarios</button>
+    <button class="menu-button" onclick="cargarVista('notificaciones')">Notificaciones</button>
+    <button class="menu-button logout-button" onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+
+  <div class="main">
+    <header>
+      BIENVENIDO <span id="usuarioNombre"></span> | <div id="fecha"></div>
+    </header>
+    
+    <div id="contenido-principal">
+      <p>Seleccione una opción del menú para ver la información.</p>
+    </div>
+
+    <footer>
+      "Gestiona las asignaturas del colegio."
+    </footer>
+  </div>
+  
+  <script>
+    // Mostrar fecha y nombre al cargar
+    window.onload = function () {
+      const fechaElemento = document.getElementById("fecha");
+      const hoy = new Date();
+      const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
+
+      const usuarioNombre = localStorage.getItem("usuarioNombre");
+      const usuarioApellido = localStorage.getItem("usuarioApellido");
+      let displayName = "Usuario";
+
+      if (usuarioNombre && usuarioApellido) {
+        displayName = `${usuarioNombre} ${usuarioApellido}`;
+      } else if (usuarioNombre) {
+        displayName = usuarioNombre;
+      }
+
+      document.getElementById("usuarioNombre").textContent = displayName;
+    };
+
+    // Función para cargar vistas dinámicamente
+    function cargarVista(seccion) {
+      const contenedor = document.getElementById("contenido-principal");
+
+      switch (seccion) {
+        case 'asignaturas':
+          contenedor.innerHTML = `
+            <h2>Asignaturas</h2>
+            <ul>
+              <li><strong>Base de Datos:</strong> Fundamentos de bases de datos relacionales (4 créditos, 180 minutos)</li>
+              <li><strong>Lógica:</strong> Principios de lógica matemática y programación (3 créditos, 120 minutos)</li>
+              <li><strong>Investigación:</strong> Metodología de la investigación (2 créditos, 240 minutos)</li>
+              <li><strong>Desarrollo de Plataformas:</strong> Desarrollo de aplicaciones web (4 créditos, 150 minutos)</li>
+            </ul>`;
+          break;
+
+        case 'docentes':
+          contenedor.innerHTML = `
+            <h2>Docentes</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Apellido</th>
+                  <th>Email</th>
+                  <th>Teléfono</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Harvey</td><td>Gamboa</td><td>harvey.gamboa@email.com</td><td>123-456-7890</td></tr>
+                <tr><td>Jesus</td><td>Duran</td><td>jesus.duran@email.com</td><td>987-654-3210</td></tr>
+                <tr><td>Eduardo</td><td>Rueda</td><td>eduardo.rueda@email.com</td><td>555-123-4567</td></tr>
+                <tr><td>Fanny</td><td>Casadiego</td><td>fanny.casadiego@email.com</td><td>111-222-3333</td></tr>
+              </tbody>
+            </table>`;
+          break;
+
+        case 'horarios':
+          contenedor.innerHTML = `
+            <h2>Horarios Generados</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Asignatura</th>
+                  <th>Docente</th>
+                  <th>Grupo</th>
+                  <th>Aula</th>
+                  <th>Día</th>
+                  <th>Hora Inicio</th>
+                  <th>Hora Fin</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Lógica</td><td>Harvey Gamboa</td><td>AR</td><td>GM 104-2</td><td>Lunes</td><td>2:00 PM</td><td>4:00 PM</td></tr>
+                <tr><td>Lógica</td><td>Harvey Gamboa</td><td>AR</td><td>GM 104-2</td><td>Miércoles</td><td>2:00 PM</td><td>4:00 PM</td></tr>
+                <tr><td>Base de Datos</td><td>Jesús Durán</td><td>BR</td><td>GM 104-1</td><td>Jueves</td><td>4:00 PM</td><td>6:00 PM</td></tr>
+                <tr><td>Base de Datos</td><td>Jesús Durán</td><td>BR</td><td>GM 104-1</td><td>Sábado</td><td>4:00 PM</td><td>6:00 PM</td></tr>
+                <tr><td>Desarrollo de Plataformas</td><td>Eduardo Rueda</td><td>CR</td><td>GM 209-1</td><td>Martes</td><td>2:00 PM</td><td>4:00 PM</td></tr>
+                <tr><td>Desarrollo de Plataformas</td><td>Eduardo Rueda</td><td>CR</td><td>GM 209-1</td><td>Jueves</td><td>2:00 PM</td><td>4:00 PM</td></tr>
+                <tr><td>Investigación</td><td>Fanny Casadiego</td><td>BR</td><td>GM 209-2</td><td>Lunes</td><td>9:00 AM</td><td>11:00 AM</td></tr>
+                <tr><td>Investigación</td><td>Fanny Casadiego</td><td>CR</td><td>GM 209-2</td><td>Viernes</td><td>9:00 AM</td><td>11:00 AM</td></tr>
+              </tbody>
+            </table>`;
+          break;
+
+        case 'grupos':
+          contenedor.innerHTML = `
+            <h2>Grupos Académicos</h2>
+            <h3>Grupo AR - Nivel I</h3>
+            <p><strong>Capacidad:</strong> 12 estudiantes</p>
+            <p><strong>Cupos disponibles:</strong> 8</p>
+            <ul>
+              <li><strong>Lógica:</strong> La lógica en programación desarrolla la capacidad de razonamiento para resolver problemas computacionales. <br>Créditos: 3</li>
+            </ul>
+            <h3>Grupo BR - Nivel II</h3>
+            <p><strong>Capacidad:</strong> 15 estudiantes</p>
+            <p><strong>Cupos disponibles:</strong> 12</p>
+            <ul>
+              <li><strong>Base de Datos:</strong> Fundamentos de bases de datos relacionales, claves primarias, consultas SQL. <br>Créditos: 4</li>
+              <li><strong>Investigación:</strong> Introducción a la metodología de la investigación científica. <br>Créditos: 2</li>
+            </ul>
+            <h3>Grupo CR - Nivel III</h3>
+            <p><strong>Capacidad:</strong> 10 estudiantes</p>
+            <p><strong>Cupos disponibles:</strong> 6</p>
+            <ul>
+              <li><strong>Desarrollo de Plataformas:</strong> Desarrollo de aplicaciones web modernas utilizando HTML, CSS, JS y frameworks. <br>Créditos: 4</li>
+              <li><strong>Investigación:</strong> Aplicación avanzada de métodos de investigación. <br>Créditos: 2</li>
+            </ul>`;
+          break;
+
+        case 'aulas':
+          contenedor.innerHTML = `
+            <h2>Aulas Disponibles</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Capacidad</th>
+                  <th>Tipo</th>
+                  <th>Ubicación</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>GM 104-2</td><td>30</td><td>Normal</td><td>Primer Piso</td></tr>
+                <tr><td>GM 104-1</td><td>30</td><td>Normal</td><td>Primer Piso</td></tr>
+                <tr><td>GM 209-1</td><td>25</td><td>Laboratorio</td><td>Segundo Piso</td></tr>
+                <tr><td>GM 209-2</td><td>25</td><td>Laboratorio</td><td>Segundo Piso</td></tr>
+              </tbody>
+            </table>`;
+          break;
+
+        case 'notificaciones':
+          contenedor.innerHTML = `
+            <h2>Notificaciones</h2>
+            <ul>
+              <li>⚠ Cambio en horario de Física - Aula 302</li>
+              <li>⚠ Nueva asignación: Matemáticas - Aula 105</li>
+            </ul>`;
+          break;
+
+        default:
+          contenedor.innerHTML = "<p>Seleccione una opción válida.</p>";
+      }
+    }
+
+    // Función para cerrar sesión
+    function cerrarSesion() {
+      localStorage.clear();
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

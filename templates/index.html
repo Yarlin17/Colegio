@@ -1,0 +1,59 @@
+<script>
+  // Actualizar fecha al cargar
+  window.onload = function () {
+    const fechaElemento = document.getElementById("fecha");
+    const hoy = new Date();
+    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
+  };
+
+  // Función para manejar el inicio de sesión
+  async function handleLogin() {
+    const email = document.getElementById("emailInput").value.trim();
+    const password = document.getElementById("passwordInput").value.trim();
+
+    if (email === "" || password === "") {
+      alert("Por favor, completa tu email y contraseña (teléfono).");
+      return;
+    }
+
+    try {
+      const response = await fetch("{{ url_for('login') }}", { // Calls the /api/login route in Flask
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: email, password: password })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        localStorage.setItem("usuarioNombre", result.nombre); // Store the actual name
+        localStorage.setItem("usuarioApellido", result.apellido);
+        // Redirect to the 'inicio' route handled by Flask
+        window.location.href = "{{ url_for('inicio') }}";
+      } else {
+        alert(result.message || "Error al iniciar sesión. Verifica tus credenciales.");
+      }
+    } catch (error) {
+      console.error("Error en el proceso de login:", error);
+      alert("Ocurrió un error al intentar iniciar sesión. Revisa la consola para más detalles.");
+    }
+  }
+  // Remove or comment out the old iniciarSesion function if it exists
+  /*
+  function iniciarSesion() {
+    const usuario = document.getElementById("usuario").value.trim(); // Old references
+    const contrasena = document.getElementById("contrasena").value.trim(); // Old references
+
+    if (usuario === "" || contrasena === "") {
+      alert("Por favor, completa ambos campos para iniciar sesión.");
+      return;
+    }
+    localStorage.setItem("usuario", usuario);
+    localStorage.setItem("contrasena", contrasena);
+    window.location.href = "inicio.html"; // This direct navigation is what we are changing
+  }
+  */
+</script>
