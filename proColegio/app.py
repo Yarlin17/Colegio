@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, url_for
+from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
 import psycopg2
 import psycopg2.extras
 
@@ -123,6 +123,12 @@ def get_horarios():
     cur.close()
     conn.close()
     return jsonify([dict(row) for row in rows])
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(
+        app.static_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon'
+    )
 
 
 if __name__ == "__main__":
