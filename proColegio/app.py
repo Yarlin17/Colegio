@@ -28,6 +28,10 @@ def inicio():
     # ensuring only logged-in users can access it.
     return render_template('inicio.html')
 
+@app.route('/profesor')
+def profesor():
+    return render_template('profesor.html')
+
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.json
@@ -42,16 +46,19 @@ def login():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        # Your SQL table `Profesores` has columns EmailProfesor and TelefonoProfesor
-        # The query implies TelefonoProfesor is used as the password.
-        cur.execute("SELECT NombreProfesor, ApellidoProfesor FROM Profesores WHERE EmailProfesor=%s AND TelefonoProfesor=%s", (email, password))
+        # Buscar primero en Profesores
+        cur.execute("SELECT NombreProfesor AS nombre, ApellidoProfesor AS apellido FROM Profesores WHERE EmailProfesor=%s AND Contrasena=%s", (email, password))
         user = cur.fetchone()
-        
         if user:
-            # psycopg2.extras.DictCursor returns column names in lowercase by default
-            return jsonify({"success": True, "nombre": user["nombreprofesor"], "apellido": user["apellidoprofesor"]})
-        else:
-            return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
+            return jsonify({"success": True, "tipo": "profesor", "nombre": user["nombre"], "apellido": user["apellido"]})
+
+        # Buscar en Estudiantes
+        cur.execute("SELECT NombreEstudiante AS nombre, ApellidoEstudiante AS apellido FROM Estudiantes WHERE EmailEstudiante=%s AND Contrasena=%s", (email, password))
+        user = cur.fetchone()
+        if user:
+            return jsonify({"success": True, "tipo": "estudiante", "nombre": user["nombre"], "apellido": user["apellido"]})
+
+        return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
     except (Exception, psycopg2.Error) as error:
         print(f"Error during login: {error}")
         return jsonify({"success": False, "message": "Error en el servidor durante el login"}), 500

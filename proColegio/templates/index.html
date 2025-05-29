@@ -16,8 +16,8 @@
       <h1>INSTITUCIÓN EDUCATIVA PABLO NERUDA</h1>
       <div id="fecha"></div>
       <h2>INICIAR SESIÓN</h2>
-      <input type="text" id="emailInput" placeholder="EMAIL (USUARIO)">
-      <input type="password" id="passwordInput" placeholder="TELÉFONO (CONTRASEÑA)">
+      <input type="text" name="usuario" id="emailInput" placeholder="USUARIO O EMAIL">
+      <input type="password" name="contrasena" id="passwordInput" placeholder="CONTRASEÑA">
       <p>¿Olvidaste la contraseña?</p>
       <button onclick="handleLogin()">INGRESAR</button>
       <div class="quote">"Formamos ciudadanos con calidad, respeto y tolerancia"</div>
@@ -51,13 +51,12 @@
       const password = document.getElementById("passwordInput").value.trim();
 
       if (email === "" || password === "") {
-        alert("Por favor, ingresa tu email y contraseña (teléfono).");
+        alert("Por favor, ingresa tu email y contraseña.");
         return;
       }
 
       try {
-        // Fetch call to the Flask /api/login route
-        const response = await fetch("{{ url_for('login') }}", { 
+        const response = await fetch("{{ url_for('login') }}", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -68,11 +67,13 @@
         const result = await response.json();
 
         if (result.success) {
-          // Store user's name and redirect
           localStorage.setItem("usuarioNombre", result.nombre);
           localStorage.setItem("usuarioApellido", result.apellido);
-          // Redirect to the 'inicio' route handled by Flask
-          window.location.href = "{{ url_for('inicio') }}"; 
+          if (result.tipo === "profesor") {
+            window.location.href = "{{ url_for('profesor') }}";
+          } else {
+            window.location.href = "{{ url_for('inicio') }}";
+          }
         } else {
           alert(result.message || "Error al iniciar sesión. Verifica tus credenciales.");
         }
@@ -81,26 +82,6 @@
         alert("Ocurrió un error al intentar iniciar sesión. Revisa la consola para más detalles.");
       }
     }
-
-    // La función original iniciarSesion() ya no es necesaria con la lógica de handleLogin()
-    /*
-    function iniciarSesion() {
-      const usuario = document.getElementById("usuario").value.trim(); // Asumiendo que tienes estos IDs
-      const contrasena = document.getElementById("contrasena").value.trim(); // Asumiendo que tienes estos IDs
-
-      if (usuario === "" || contrasena === "") {
-        alert("Por favor, completa ambos campos para iniciar sesión.");
-        return;
-      }
-
-      // Guardar datos en localStorage (esto es lo que hacía antes)
-      localStorage.setItem("usuario", usuario);
-      localStorage.setItem("contrasena", contrasena);
-
-      // Redirigir al inicio (esto es una navegación directa, sin login real)
-      window.location.href = "inicio.html"; 
-    }
-    */
   </script>
 </body>
 </html>

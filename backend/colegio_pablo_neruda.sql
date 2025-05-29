@@ -56,7 +56,8 @@ CREATE TABLE Estudiantes (
     ApellidoEstudiante VARCHAR(255) NOT NULL,
     EmailEstudiante VARCHAR(100) UNIQUE,
     FechaNacimiento DATE,
-    Grupo_ID INTEGER REFERENCES Grupos(Grupo_ID) -- Corrected foreign key syntax
+    Grupo_ID INTEGER REFERENCES Grupos(Grupo_ID), -- Corrected foreign key syntax
+    Contrasena VARCHAR(100) -- Nueva columna para contraseña
 );
 
 CREATE TABLE Aulas (
@@ -73,7 +74,8 @@ CREATE TABLE Profesores (
     ApellidoProfesor VARCHAR(255) NOT NULL,
     EmailProfesor VARCHAR(100) UNIQUE,
     TelefonoProfesor VARCHAR(20),
-    Disponibilidad VARCHAR(255)
+    Disponibilidad VARCHAR(255),
+    Contrasena VARCHAR(100)
 );
 
 CREATE TABLE Asignaturas (
@@ -116,28 +118,28 @@ INSERT INTO Grupos (Grupo_ID, NombreGrupo, NivelGrupo, CapacidadGrupo) VALUES
 (3, 'CR', 'Nivel III', 10);
 
 --insert estudiantes 
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Kevin', 'Marquez', 'kevin.marquez@email.com', '2003-05-10', 1);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Sebastian', 'Rolon', 'sebastian.rolon@email.com', '2004-11-22', 2);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Julio', 'Carrillo', 'julio.carrillo@email.com', '2002-08-15', 3);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Geron', 'Vergara', 'geron.vergara@email.com', '2003-02-28', 3);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Brian', 'Acevedo', 'brian.acevedo@email.com', '2005-01-05', 1);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Einer', 'Alvear', 'einer.alvear@email.com', '2002-12-19', 2);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Brayan', 'Amado', 'brayan.amado@email.com', '2004-06-30', 1);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Andres', 'Vera', 'andres.vera@email.com', '2003-09-08', 2);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Julian', 'Pulido', 'julian.pulido@email.com', '2002-04-01', 1);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Juan', 'Ochoa', 'juan.ochoa@email.com', '2004-03-12', 3);
-INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES
-('Jerley', 'Hernandez', 'jerley.hernandez@email.com', '2003-07-26', 3);
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Kevin', 'Marquez', 'kevin.marquez@email.com', '2003-05-10', 1, 'kevin123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Sebastian', 'Rolon', 'sebastian.rolon@email.com', '2004-11-22', 2, 'sebastian123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Julio', 'Carrillo', 'julio.carrillo@email.com', '2002-08-15', 3, 'julio123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Geron', 'Vergara', 'geron.vergara@email.com', '2003-02-28', 3, 'geron123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Brian', 'Acevedo', 'brian.acevedo@email.com', '2005-01-05', 1, 'brian123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Einer', 'Alvear', 'einer.alvear@email.com', '2002-12-19', 2, 'einer123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Brayan', 'Amado', 'brayan.amado@email.com', '2004-06-30', 1, 'brayan123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Andres', 'Vera', 'andres.vera@email.com', '2003-09-08', 2, 'andres123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Julian', 'Pulido', 'julian.pulido@email.com', '2002-04-01', 1, 'julian123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Juan', 'Ochoa', 'juan.ochoa@email.com', '2004-03-12', 3, 'juan123');
+INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
+('Jerley', 'Hernandez', 'jerley.hernandez@email.com', '2003-07-26', 3, 'jerley123');
 
 --insert aulas
 INSERT INTO Aulas (NombreAula, Capacidad, TipoAula, Ubicacion) VALUES
@@ -160,14 +162,14 @@ INSERT INTO Asignaturas (NombreAsignatura, DescripcionAsignatura, Creditos, Dura
 ('Desarrollo de Plataformas', 'Desarrollo de aplicaciones web', 4, 150);
 
 --insert profesores
-INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad) VALUES
-('Harvey', 'Gamboa', 'harvey.gamboa@email.com', '123-456-7890', '4:00 pm a 6:00 pm');
-INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad) VALUES
-('Jesus', 'Duran', 'jesus.duran@email.com', '987-654-3210', '12:00 pm a 4:00 pm');
-INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad) VALUES
-('Eduardo', 'Rueda', 'eduardo.rueda@email.com', '555-123-4567', '9:00 am a 11:00 am');
-INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad) VALUES
-('Fanny', 'Casadiego', 'fanny.casadiego@email.com', '111-222-3333', '2:00 pm a 4:00 pm');
+INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES
+('Harvey', 'Gamboa', 'harvey.gamboa@email.com', '123-456-7890', '4:00 pm a 6:00 pm', 'harvey123');
+INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES
+('Jesus', 'Duran', 'jesus.duran@email.com', '987-654-3210', '12:00 pm a 4:00 pm', 'jesus123');
+INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES
+('Eduardo', 'Rueda', 'eduardo.rueda@email.com', '555-123-4567', '9:00 am a 11:00 am', 'eduardo123');
+INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES
+('Fanny', 'Casadiego', 'fanny.casadiego@email.com', '111-222-3333', '2:00 pm a 4:00 pm', 'fanny123');
 
 --insert horarios 
 -- Lógica: Lunes y Miércoles de 2:00 PM a 4:00 PM

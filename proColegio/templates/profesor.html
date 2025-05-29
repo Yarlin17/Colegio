@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Profesor - Colegio Pablo Neruda</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+  <header>
+    BIENVENIDO PROFESOR <span id="usuarioNombre"></span> | <div id="fecha"></div>
+  </header>
+  <main>
+    <h2>Panel del Profesor</h2>
+    <p>Bienvenido al panel de gestión para profesores.</p>
+    <!-- Aquí puedes agregar más contenido específico para profesores -->
+  </main>
+  <footer>
+    "Panel exclusivo para profesores del colegio."
+  </footer>
+  <script>
+    window.onload = function () {
+      const fechaElemento = document.getElementById("fecha");
+      const hoy = new Date();
+      const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
+
+      const usuarioNombre = localStorage.getItem("usuarioNombre");
+      const usuarioApellido = localStorage.getItem("usuarioApellido");
+      let displayName = "Profesor";
+
+      if (usuarioNombre && usuarioApellido) {
+        displayName = `${usuarioNombre} ${usuarioApellido}`;
+      } else if (usuarioNombre) {
+        displayName = usuarioNombre;
+      }
+
+      document.getElementById("usuarioNombre").textContent = displayName;
+    };
+  </script>
+</body>
+</html>

@@ -27,7 +27,8 @@ def init_db(conn):
             ApellidoEstudiante VARCHAR(255) NOT NULL,
             EmailEstudiante VARCHAR(100) UNIQUE,
             FechaNacimiento DATE,
-            Grupo_ID INTEGER REFERENCES Grupos(Grupo_ID)
+            Grupo_ID INTEGER REFERENCES Grupos(Grupo_ID),
+            Contrasena VARCHAR(100)
         );
         """)
         cur.execute("""
@@ -46,7 +47,8 @@ def init_db(conn):
             ApellidoProfesor VARCHAR(255) NOT NULL,
             EmailProfesor VARCHAR(100) UNIQUE,
             TelefonoProfesor VARCHAR(20),
-            Disponibilidad VARCHAR(255)
+            Disponibilidad VARCHAR(255),
+            Contrasena VARCHAR(100)
         );
         """)
         cur.execute("""
@@ -79,20 +81,20 @@ def init_db(conn):
 
         # Insertar datos en Estudiantes
         estudiantes = [
-            ('Kevin', 'Marquez', 'kevin.marquez@email.com', '2003-05-10', 1),
-            ('Sebastian', 'Rolon', 'sebastian.rolon@email.com', '2004-11-22', 2),
-            ('Julio', 'Carrillo', 'julio.carrillo@email.com', '2002-08-15', 3),
-            ('Geron', 'Vergara', 'geron.vergara@email.com', '2003-02-28', 3),
-            ('Brian', 'Acevedo', 'brian.acevedo@email.com', '2005-01-05', 1),
-            ('Einer', 'Alvear', 'einer.alvear@email.com', '2002-12-19', 2),
-            ('Brayan', 'Amado', 'brayan.amado@email.com', '2004-06-30', 1),
-            ('Andres', 'Vera', 'andres.vera@email.com', '2003-09-08', 2),
-            ('Julian', 'Pulido', 'julian.pulido@email.com', '2002-04-01', 1),
-            ('Juan', 'Ochoa', 'juan.ochoa@email.com', '2004-03-12', 3),
-            ('Jerley', 'Hernandez', 'jerley.hernandez@email.com', '2003-07-26', 3)
+            ('Kevin', 'Marquez', 'kevin.marquez@email.com', '2003-05-10', 1, 'kevin123'),
+            ('Sebastian', 'Rolon', 'sebastian.rolon@email.com', '2004-11-22', 2, 'sebastian123'),
+            ('Julio', 'Carrillo', 'julio.carrillo@email.com', '2002-08-15', 3, 'julio123'),
+            ('Geron', 'Vergara', 'geron.vergara@email.com', '2003-02-28', 3, 'geron123'),
+            ('Brian', 'Acevedo', 'brian.acevedo@email.com', '2005-01-05', 1, 'brian123'),
+            ('Einer', 'Alvear', 'einer.alvear@email.com', '2002-12-19', 2, 'einer123'),
+            ('Brayan', 'Amado', 'brayan.amado@email.com', '2004-06-30', 1, 'brayan123'),
+            ('Andres', 'Vera', 'andres.vera@email.com', '2003-09-08', 2, 'andres123'),
+            ('Julian', 'Pulido', 'julian.pulido@email.com', '2002-04-01', 1, 'julian123'),
+            ('Juan', 'Ochoa', 'juan.ochoa@email.com', '2004-03-12', 3, 'juan123'),
+            ('Jerley', 'Hernandez', 'jerley.hernandez@email.com', '2003-07-26', 3, 'jerley123')
         ]
         cur.executemany(
-            "INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID) VALUES (%s, %s, %s, %s, %s);",
+            "INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES (%s, %s, %s, %s, %s, %s);",
             estudiantes
         )
 
@@ -122,13 +124,13 @@ def init_db(conn):
 
         # Insertar datos en Profesores
         profesores = [
-            ('Harvey', 'Gamboa', 'harvey.gamboa@email.com', '123-456-7890', '4:00 pm a 6:00 pm'),
-            ('Jesus', 'Duran', 'jesus.duran@email.com', '987-654-3210', '12:00 pm a 4:00 pm'),
-            ('Eduardo', 'Rueda', 'eduardo.rueda@email.com', '555-123-4567', '9:00 am a 11:00 am'),
-            ('Fanny', 'Casadiego', 'fanny.casadiego@email.com', '111-222-3333', '2:00 pm a 4:00 pm')
+            ('Harvey', 'Gamboa', 'harvey.gamboa@email.com', '123-456-7890', '4:00 pm a 6:00 pm', 'harvey123'),
+            ('Jesus', 'Duran', 'jesus.duran@email.com', '987-654-3210', '12:00 pm a 4:00 pm', 'jesus123'),
+            ('Eduardo', 'Rueda', 'eduardo.rueda@email.com', '555-123-4567', '9:00 am a 11:00 am', 'eduardo123'),
+            ('Fanny', 'Casadiego', 'fanny.casadiego@email.com', '111-222-3333', '2:00 pm a 4:00 pm', 'fanny123')
         ]
         cur.executemany(
-            "INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad) VALUES (%s, %s, %s, %s, %s);",
+            "INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES (%s, %s, %s, %s, %s, %s);",
             profesores
         )
 
