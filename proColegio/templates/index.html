@@ -2,70 +2,105 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inicio de sesión - Colegio Pablo Neruda</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-  <h1>¡Bienvenido!</h1>
-  <p>Esto es el index.html</p>
+  <header>
+    <img src="{{ url_for('static', filename='img/pabloneruda colegio.jpeg') }}" alt="Foto del Colegio Pablo Neruda">
+  </header>
+
+  <section class="login-container">
+    <div class="login-right">
+      <h1>INSTITUCIÓN EDUCATIVA PABLO NERUDA</h1>
+      <div id="fecha"></div>
+      <h2>INICIAR SESIÓN</h2>
+      <input type="text" id="emailInput" placeholder="EMAIL (USUARIO)">
+      <input type="password" id="passwordInput" placeholder="TELÉFONO (CONTRASEÑA)">
+      <p>¿Olvidaste la contraseña?</p>
+      <button onclick="handleLogin()">INGRESAR</button>
+      <div class="quote">"Formamos ciudadanos con calidad, respeto y tolerancia"</div>
+    </div>
+  </section> <footer>
+    <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo del Colegio Pablo Neruda">
+    <p><strong>📘 Colegio Pablo Neruda - Cúcuta</strong></p>
+    <p>📍 Calle 12 #5-78, Barrio Centro, Cúcuta, Norte de Santander</p>
+    <p>📞 (7) 582 3421 | 📱 WhatsApp: +57 313 456 7890</p>
+    <p>✉️ contacto@colegiopabloneruda.edu.co</p>
+    <p>
+      🔗 
+      <a href="https://www.facebook.com/ColegioPabloNerudaCucuta" target="_blank">Facebook</a> |
+      <a href="https://www.instagram.com/ColegioPabloNerudaCucuta" target="_blank">Instagram</a> |
+      <a href="https://wa.me/573134567890" target="_blank">WhatsApp</a>
+    </p>
+  </footer>
 
   <script>
-  // Actualizar fecha al cargar
-  window.onload = function () {
-    const fechaElemento = document.getElementById("fecha");
-    const hoy = new Date();
-    const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
-  };
+    // Actualizar fecha al cargar
+    window.onload = function () {
+      const fechaElemento = document.getElementById("fecha");
+      const hoy = new Date();
+      const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
+    };
 
-  // Función para manejar el inicio de sesión
-  async function handleLogin() {
-    const email = document.getElementById("emailInput").value.trim();
-    const password = document.getElementById("passwordInput").value.trim();
+    // Nueva función para manejar el inicio de sesión con el backend
+    async function handleLogin() {
+      const email = document.getElementById("emailInput").value.trim();
+      const password = document.getElementById("passwordInput").value.trim();
 
-    if (email === "" || password === "") {
-      alert("Por favor, completa tu email y contraseña (teléfono).");
-      return;
-    }
-
-    try {
-      const response = await fetch("{{ url_for('login') }}", { // Calls the /api/login route in Flask
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email: email, password: password })
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        localStorage.setItem("usuarioNombre", result.nombre); // Store the actual name
-        localStorage.setItem("usuarioApellido", result.apellido);
-        // Redirect to the 'inicio' route handled by Flask
-        window.location.href = "{{ url_for('inicio') }}";
-      } else {
-        alert(result.message || "Error al iniciar sesión. Verifica tus credenciales.");
+      if (email === "" || password === "") {
+        alert("Por favor, ingresa tu email y contraseña (teléfono).");
+        return;
       }
-    } catch (error) {
-      console.error("Error en el proceso de login:", error);
-      alert("Ocurrió un error al intentar iniciar sesión. Revisa la consola para más detalles.");
-    }
-  }
-  // Remove or comment out the old iniciarSesion function if it exists
-  /*
-  function iniciarSesion() {
-    const usuario = document.getElementById("usuario").value.trim(); // Old references
-    const contrasena = document.getElementById("contrasena").value.trim(); // Old references
 
-    if (usuario === "" || contrasena === "") {
-      alert("Por favor, completa ambos campos para iniciar sesión.");
-      return;
+      try {
+        // Fetch call to the Flask /api/login route
+        const response = await fetch("{{ url_for('login') }}", { 
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: email, password: password })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // Store user's name and redirect
+          localStorage.setItem("usuarioNombre", result.nombre);
+          localStorage.setItem("usuarioApellido", result.apellido);
+          // Redirect to the 'inicio' route handled by Flask
+          window.location.href = "{{ url_for('inicio') }}"; 
+        } else {
+          alert(result.message || "Error al iniciar sesión. Verifica tus credenciales.");
+        }
+      } catch (error) {
+        console.error("Error en el proceso de login:", error);
+        alert("Ocurrió un error al intentar iniciar sesión. Revisa la consola para más detalles.");
+      }
     }
-    localStorage.setItem("usuario", usuario);
-    localStorage.setItem("contrasena", contrasena);
-    window.location.href = "inicio.html"; // This direct navigation is what we are changing
-  }
-  */
+
+    // La función original iniciarSesion() ya no es necesaria con la lógica de handleLogin()
+    /*
+    function iniciarSesion() {
+      const usuario = document.getElementById("usuario").value.trim(); // Asumiendo que tienes estos IDs
+      const contrasena = document.getElementById("contrasena").value.trim(); // Asumiendo que tienes estos IDs
+
+      if (usuario === "" || contrasena === "") {
+        alert("Por favor, completa ambos campos para iniciar sesión.");
+        return;
+      }
+
+      // Guardar datos en localStorage (esto es lo que hacía antes)
+      localStorage.setItem("usuario", usuario);
+      localStorage.setItem("contrasena", contrasena);
+
+      // Redirigir al inicio (esto es una navegación directa, sin login real)
+      window.location.href = "inicio.html"; 
+    }
+    */
   </script>
 </body>
 </html>
