@@ -108,6 +108,7 @@
         if (result.success) {
           localStorage.setItem("usuarioNombre", result.nombre);
           localStorage.setItem("usuarioApellido", result.apellido);
+          localStorage.setItem("usuarioEmail", email);  // Store the email here!
           if (result.tipo === "profesor") {
             window.location.href = "{{ url_for('profesor') }}";
           } else {

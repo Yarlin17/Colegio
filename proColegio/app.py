@@ -1,15 +1,17 @@
 from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
+from flask_bcrypt import Bcrypt  # Importar Bcrypt
 import psycopg2
 import psycopg2.extras
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
+bcrypt = Bcrypt(app)  # Inicializar Bcrypt
 
 
 def get_db_connection():
     return psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",  # Cambia por tu usuario de PostgreSQL
-        password="1234",  # Cambia por tu contraseña de PostgreSQL - Consider using environment variables
+        password="0102",  # Cambia por tu contraseña de PostgreSQL - Consider using environment variables
         host="localhost",
         port=5432
     )
@@ -34,9 +36,8 @@ def profesor():
 def login():
     data = request.json
     email = data.get('email')
-    # The SQL query uses TelefonoProfesor as the password
     password = data.get('password')
-    
+
     if not email or not password:
         return jsonify({"success": False, "message": "Email y contraseña son requeridos"}), 400
 
@@ -44,17 +45,20 @@ def login():
     try:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+
         # Buscar primero en Profesores
-        cur.execute("SELECT NombreProfesor AS nombre, ApellidoProfesor AS apellido FROM Profesores WHERE EmailProfesor=%s AND Contrasena=%s", (email, password))
+        cur.execute("SELECT NombreProfesor AS nombre, ApellidoProfesor AS apellido, Contrasena FROM Profesores WHERE EmailProfesor=%s", (email,))
         user = cur.fetchone()
         if user:
-            return jsonify({"success": True, "tipo": "profesor", "nombre": user["nombre"], "apellido": user["apellido"]})
+            if bcrypt.check_password_hash(user["contrasena"], password):
+                return jsonify({"success": True, "tipo": "profesor", "nombre": user["nombre"], "apellido": user["apellido"]})
 
         # Buscar en Estudiantes
-        cur.execute("SELECT NombreEstudiante AS nombre, ApellidoEstudiante AS apellido FROM Estudiantes WHERE EmailEstudiante=%s AND Contrasena=%s", (email, password))
+        cur.execute("SELECT NombreEstudiante AS nombre, ApellidoEstudiante AS apellido, Contrasena FROM Estudiantes WHERE EmailEstudiante=%s", (email,))
         user = cur.fetchone()
         if user:
-            return jsonify({"success": True, "tipo": "estudiante", "nombre": user["nombre"], "apellido": user["apellido"]})
+            if bcrypt.check_password_hash(user["contrasena"], password):
+                return jsonify({"success": True, "tipo": "estudiante", "nombre": user["nombre"], "apellido": user["apellido"]})
 
         return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
     except (Exception, psycopg2.Error) as error:
@@ -65,24 +69,41 @@ def login():
             cur.close()
             conn.close()
 
-@app.route('/api/profesores')
+@app.route('/api/profesores', methods=['GET'])
 def get_profesores():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("SELECT Profesor_ID, NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad FROM Profesores") #
+    profesor_id = request.args.get('profesor_id')
+    email = request.args.get('email')  # Allow filtering by email
+
+    query = "SELECT Profesor_ID, NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad FROM Profesores WHERE 1=1"
+    params = []
+    if profesor_id:
+        query += " AND Profesor_ID = %s"
+        params.append(profesor_id)
+    if email:
+        query += " AND EmailProfesor = %s"
+        params.append(email)
+
+    cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return jsonify([dict(row) for row in rows]) #
 
-# You can add other API endpoints here if you intend for Flask to handle them,
-# similar to what's in your servidor.js. For example:
-
-@app.route('/api/estudiantes')
+@app.route('/api/estudiantes', methods=['GET'])
 def get_estudiantes():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("SELECT * FROM Estudiantes")
+    grupo_id = request.args.get('grupo_id')  # Allow filtering by grupo ID
+
+    query = "SELECT * FROM Estudiantes WHERE 1=1"
+    params = []
+    if grupo_id:
+        query += " AND Grupo_ID = %s"
+        params.append(grupo_id)
+
+    cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -98,32 +119,55 @@ def get_aulas():
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-@app.route('/api/asignaturas')
+@app.route('/api/asignaturas', methods=['GET'])
 def get_asignaturas():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("SELECT * FROM Asignaturas")
+    asignatura_id = request.args.get('asignatura_id')  # Allow filtering by asignatura ID
+
+    query = "SELECT * FROM Asignaturas WHERE 1=1"
+    params = []
+    if asignatura_id:
+        query += " AND Asignatura_ID = %s"
+        params.append(asignatura_id)
+
+    cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-@app.route('/api/grupos')
+@app.route('/api/grupos', methods=['GET'])
 def get_grupos():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("SELECT * FROM Grupos")
+    grupo_id = request.args.get('grupo_id')  # Allow filtering by grupo ID
+
+    query = "SELECT * FROM Grupos WHERE 1=1"
+    params = []
+    if grupo_id:
+        query += " AND Grupo_ID = %s"
+        params.append(grupo_id)
+
+    cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-@app.route('/api/horarios')
+@app.route('/api/horarios', methods=['GET'])
 def get_horarios():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    # Consider joining with other tables for more meaningful data (e.g., AsignaturaNombre, ProfesorNombre)
-    cur.execute("SELECT * FROM Horarios")
+    profesor_id = request.args.get('profesor_id')  # Allow filtering by professor ID
+
+    query = "SELECT * FROM Horarios WHERE 1=1"
+    params = []
+    if profesor_id:
+        query += " AND Profesor_ID = %s"
+        params.append(profesor_id)
+
+    cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -133,66 +177,110 @@ def get_horarios():
 def get_notas():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("""
-        SELECT n.nota_id, n.estudiante_id, n.asignatura_id, n.corte, n.nota,
-               e.NombreEstudiante, e.ApellidoEstudiante, a.NombreAsignatura
+
+    profesor_id = request.args.get('profesor_id')
+    estudiante_id = request.args.get('estudiante_id')
+    asignatura_id = request.args.get('asignatura_id')
+
+    query = """
+        SELECT n.nota_id, n.estudiante_id, n.asignatura_id, n.profesor_id, n.corte, n.tipo_nota, n.nota,
+               e.NombreEstudiante, e.ApellidoEstudiante, a.NombreAsignatura,
+               p.NombreProfesor, p.ApellidoProfesor
         FROM Notas n
         JOIN Estudiantes e ON n.estudiante_id = e.Estudiante_ID
         JOIN Asignaturas a ON n.asignatura_id = a.Asignatura_ID
-        ORDER BY n.estudiante_id, n.asignatura_id, n.corte
-    """)
+        JOIN Profesores p ON n.profesor_id = p.Profesor_ID
+        WHERE 1=1
+    """
+    params = []
+
+    if profesor_id:
+        query += " AND n.profesor_id = %s"
+        params.append(profesor_id)
+    if estudiante_id:
+        query += " AND n.estudiante_id = %s"
+        params.append(estudiante_id)
+    if asignatura_id:
+        query += " AND n.asignatura_id = %s"
+        params.append(asignatura_id)
+
+    query += " ORDER BY n.estudiante_id, n.asignatura_id, n.profesor_id, n.corte, n.tipo_nota"
+
+    cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return jsonify([dict(row) for row in rows])
 
 @app.route('/api/notas', methods=['POST'])
-def create_nota():
+def create_or_update_nota():
     data = request.json
     estudiante_id = data.get('estudiante_id')
     asignatura_id = data.get('asignatura_id')
+    profesor_id = data.get('profesor_id')
     corte = data.get('corte')
+    tipo_nota = data.get('tipo_nota')
     nota = data.get('nota')
-    if not (estudiante_id and asignatura_id and corte and nota is not None):
-        return jsonify({"success": False, "message": "Datos incompletos"}), 400
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO Notas (estudiante_id, asignatura_id, corte, nota)
-        VALUES (%s, %s, %s, %s)
-        RETURNING nota_id
-    """, (estudiante_id, asignatura_id, corte, nota))
-    nota_id = cur.fetchone()[0]
-    conn.commit()
-    cur.close()
-    conn.close()
-    return jsonify({"success": True, "nota_id": nota_id})
 
-@app.route('/api/notas/<int:nota_id>', methods=['PUT'])
-def update_nota(nota_id):
-    data = request.json
-    nota = data.get('nota')
-    if nota is None:
-        return jsonify({"success": False, "message": "Nota requerida"}), 400
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        UPDATE Notas SET nota=%s WHERE nota_id=%s
-    """, (nota, nota_id))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return jsonify({"success": True})
+    if not all([estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nota is not None]):
+        return jsonify({"success": False, "message": "Datos incompletos para la nota"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Check if the note already exists
+        cur.execute("""
+            SELECT nota_id FROM Notas
+            WHERE estudiante_id = %s AND asignatura_id = %s AND profesor_id = %s AND corte = %s AND tipo_nota = %s
+        """, (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota))
+        existing_nota = cur.fetchone()
+
+        if existing_nota:
+            # Update existing note
+            cur.execute("""
+                UPDATE Notas SET nota = %s
+                WHERE nota_id = %s
+            """, (nota, existing_nota[0]))
+            nota_id = existing_nota[0]
+        else:
+            # Insert new note
+            cur.execute("""
+                INSERT INTO Notas (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nota)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                RETURNING nota_id
+            """, (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nota))
+            nota_id = cur.fetchone()[0]
+
+        conn.commit()
+        return jsonify({"success": True, "nota_id": nota_id, "message": "Nota guardada correctamente"}), 200
+    except (Exception, psycopg2.Error) as error:
+        conn.rollback()
+        print(f"Error al guardar la nota: {error}")
+        return jsonify({"success": False, "message": f"Error al guardar la nota: {error}"}), 500
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
 
 @app.route('/api/notas/<int:nota_id>', methods=['DELETE'])
 def delete_nota(nota_id):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("DELETE FROM Notas WHERE nota_id=%s", (nota_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return jsonify({"success": True})
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("DELETE FROM Notas WHERE nota_id=%s", (nota_id,))
+        conn.commit()
+        return jsonify({"success": True, "message": "Nota eliminada correctamente"}), 200
+    except (Exception, psycopg2.Error) as error:
+        conn.rollback()
+        print(f"Error al eliminar la nota: {error}")
+        return jsonify({"success": False, "message": f"Error al eliminar la nota: {error}"}), 500
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
 
 @app.route('/favicon.ico')
 def favicon():

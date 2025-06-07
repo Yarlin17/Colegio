@@ -1,6 +1,9 @@
 import psycopg2
+from flask_bcrypt import Bcrypt  # Importar Bcrypt
 
 def init_db(conn):
+    bcrypt = Bcrypt()  # Inicializar Bcrypt
+
     with conn.cursor() as cur:
         # Borrar tablas si existen
         cur.execute("DROP TABLE IF EXISTS Horarios CASCADE;")
@@ -9,6 +12,7 @@ def init_db(conn):
         cur.execute("DROP TABLE IF EXISTS Asignaturas CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Profesores CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Aulas CASCADE;")
+        cur.execute("DROP TABLE IF EXISTS Notas CASCADE;")
 
         # Crear tablas
         cur.execute("""
@@ -73,6 +77,18 @@ def init_db(conn):
             HoraFin TIMESTAMP
         );
         """)
+        cur.execute("""
+        CREATE TABLE Notas (
+            nota_id SERIAL PRIMARY KEY,
+            estudiante_id INTEGER REFERENCES Estudiantes(Estudiante_ID),
+            asignatura_id INTEGER REFERENCES Asignaturas(Asignatura_ID),
+            profesor_id INTEGER REFERENCES Profesores(Profesor_ID),
+            corte INTEGER NOT NULL,
+            tipo_nota VARCHAR(50) NOT NULL,
+            nota NUMERIC(4, 2) NOT NULL CHECK (nota >= 0 AND nota <= 5),
+            UNIQUE (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota)
+        );
+        """)
 
         # Insertar datos en Grupos
         cur.execute("INSERT INTO Grupos (Grupo_ID, NombreGrupo, NivelGrupo, CapacidadGrupo) VALUES (1, 'AR', 'Nivel I', 12);")
@@ -80,7 +96,7 @@ def init_db(conn):
         cur.execute("INSERT INTO Grupos (Grupo_ID, NombreGrupo, NivelGrupo, CapacidadGrupo) VALUES (3, 'CR', 'Nivel III', 10);")
 
         # Insertar datos en Estudiantes
-        estudiantes = [
+        estudiantes_data = [
             ('Kevin', 'Marquez', 'kevin.marquez@email.com', '2003-05-10', 1, 'kevin123'),
             ('Sebastian', 'Rolon', 'sebastian.rolon@email.com', '2004-11-22', 2, 'sebastian123'),
             ('Julio', 'Carrillo', 'julio.carrillo@email.com', '2002-08-15', 3, 'julio123'),
@@ -93,9 +109,13 @@ def init_db(conn):
             ('Juan', 'Ochoa', 'juan.ochoa@email.com', '2004-03-12', 3, 'juan123'),
             ('Jerley', 'Hernandez', 'jerley.hernandez@email.com', '2003-07-26', 3, 'jerley123')
         ]
+        processed_estudiantes = []
+        for nombre, apellido, email, fecha_nacimiento, grupo_id, contrasena in estudiantes_data:
+            hashed_password = bcrypt.generate_password_hash(contrasena.encode('utf-8')).decode('utf-8')
+            processed_estudiantes.append((nombre, apellido, email, fecha_nacimiento, grupo_id, hashed_password))
         cur.executemany(
             "INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES (%s, %s, %s, %s, %s, %s);",
-            estudiantes
+            processed_estudiantes
         )
 
         # Insertar datos en Aulas
@@ -123,15 +143,19 @@ def init_db(conn):
         )
 
         # Insertar datos en Profesores
-        profesores = [
+        profesores_data = [
             ('Harvey', 'Gamboa', 'harvey.gamboa@email.com', '123-456-7890', '4:00 pm a 6:00 pm', 'harvey123'),
             ('Jesus', 'Duran', 'jesus.duran@email.com', '987-654-3210', '12:00 pm a 4:00 pm', 'jesus123'),
             ('Eduardo', 'Rueda', 'eduardo.rueda@email.com', '555-123-4567', '9:00 am a 11:00 am', 'eduardo123'),
             ('Fanny', 'Casadiego', 'fanny.casadiego@email.com', '111-222-3333', '2:00 pm a 4:00 pm', 'fanny123')
         ]
+        processed_profesores = []
+        for nombre, apellido, email, telefono, disponibilidad, contrasena in profesores_data:
+            hashed_password = bcrypt.generate_password_hash(contrasena.encode('utf-8')).decode('utf-8')
+            processed_profesores.append((nombre, apellido, email, telefono, disponibilidad, hashed_password))
         cur.executemany(
             "INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES (%s, %s, %s, %s, %s, %s);",
-            profesores
+            processed_profesores
         )
 
         # Insertar datos en Horarios
@@ -160,7 +184,7 @@ if __name__ == "__main__":
     conn = psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",         # Cambia por tu usuario de PostgreSQL
-        password="1234",         # Cambia por tu contraseña de PostgreSQL
+        password="0102",         # Cambia por tu contraseña de PostgreSQL
         host="localhost",
         port=5432
     )
