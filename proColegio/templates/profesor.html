@@ -12,6 +12,7 @@
     <button class="menu-button" onclick="cargarVistaProfesor('clases')">Clases</button>
     <button class="menu-button" onclick="cargarVistaProfesor('registros')">Registros</button>
     <button class="menu-button" onclick="cargarVistaProfesor('horario')">Horario</button>
+    <button class="menu-button" onclick="cargarVistaProfesor('asistencia')">Asistencia</button>
     <button class="menu-button" onclick="cargarVistaProfesor('info-general')">Información General</button>
     <button class="menu-button logout-button" onclick="cerrarSesion()">Cerrar sesión</button>
   </div>
@@ -66,29 +67,23 @@
       }
 
       // --- FETCH INITIAL DATA FROM BACKEND ---
-      // In a real app, profesor_id would be stored in localStorage upon login
-      // For now, let's assume a fixed ID or derive from stored name
-      // You should adjust this to get the actual ID of the logged-in professor.
-      // For demonstration, we'll try to find the professor by name/email or use a default.
-      const emailProfesor = localStorage.getItem("usuarioEmail"); // Assuming email is stored in localStorage
+      const emailProfesor = localStorage.getItem("usuarioEmail");
       
       if (emailProfesor) {
           try {
               const responseProfesor = await fetch(`/api/profesores?email=${emailProfesor}`);
               const profesores = await responseProfesor.json();
               if (profesores.length > 0) {
-                  profesorDatosGenerales = profesores[0]; // Assuming email is unique
+                  profesorDatosGenerales = profesores[0];
                   currentProfesorId = profesorDatosGenerales.profesor_id;
                   console.log("Datos del profesor cargados:", profesorDatosGenerales);
               } else {
                   console.warn("Profesor no encontrado en la base de datos.");
-                  // Fallback for demo if not found by email
-                  currentProfesorId = 2; // Default to Jesus Duran's ID for testing
+                  currentProfesorId = 2; // Default for testing
               }
           } catch (error) {
               console.error("Error al cargar datos del profesor:", error);
-              // Fallback for demo if error occurs
-              currentProfesorId = 2; // Default to Jesus Duran's ID for testing
+              currentProfesorId = 2; // Default for testing
           }
       } else {
           currentProfesorId = 2; // Default if no email in localStorage
@@ -107,7 +102,6 @@
               for (const horario of horarios) {
                   const key = `${horario.asignatura_id}-${horario.grupo_id}`;
                   if (!processedClases[key]) {
-                      // Fetch assignment and group details
                       const [asignaturaResp, grupoResp] = await Promise.all([
                           fetch(`/api/asignaturas?asignatura_id=${horario.asignatura_id}`).then(res => res.json()),
                           fetch(`/api/grupos?grupo_id=${horario.grupo_id}`).then(res => res.json())
@@ -115,7 +109,6 @@
                       const asignatura = asignaturaResp[0];
                       const grupo = grupoResp[0];
 
-                      // Fetch students for this group
                       const estudiantesResp = await fetch(`/api/estudiantes?grupo_id=${horario.grupo_id}`);
                       const estudiantes = await estudiantesResp.json();
                       const formattedEstudiantes = estudiantes.map(e => ({
@@ -128,22 +121,20 @@
                           asignatura: asignatura ? asignatura.nombreasignatura : 'Desconocida',
                           grupo_id: horario.grupo_id,
                           grupo: grupo ? grupo.nombregrupo : 'Desconocido',
-                          horario: [], // Will build this string
+                          horario: [],
                           horaInicio: horario.horainicio ? new Date(horario.horainicio).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '',
                           horaFin: horario.horafin ? new Date(horario.horafin).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '',
                           aula: horario.aula_id ? (await fetch(`/api/aulas?aula_id=${horario.aula_id}`).then(res => res.json()))[0].nombreaula : 'Desconocida',
                           estudiantes: formattedEstudiantes
                       };
                   }
-                  // Add day and time to the horario string
                   const horaInicioStr = horario.horainicio ? new Date(horario.horainicio).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '';
                   const horaFinStr = horario.horafin ? new Date(horario.horafin).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '';
                   processedClases[key].horario.push(`${horario.diasemana} ${horaInicioStr} - ${horaFinStr}`);
               }
 
-              // Convert object back to array
               clasesDelProfesor = Object.values(processedClases).map(clase => {
-                  clase.horario = clase.horario.join(', '); // Join all schedule parts
+                  clase.horario = clase.horario.join(', ');
                   return clase;
               });
               console.log("Clases del profesor cargadas:", clasesDelProfesor);
@@ -158,11 +149,9 @@
     async function cargarVistaProfesor(seccion) {
       const contenedor = document.getElementById("contenido-principal");
 
-      // Ensure data is loaded before proceeding
       if (!currentProfesorId || clasesDelProfesor.length === 0) {
           contenedor.innerHTML = "<p>Cargando información... por favor espere.</p>";
-          // You might want to re-call window.onload or show a loading spinner
-          await window.onload(); // Try to ensure data is loaded
+          await window.onload();
           if (!currentProfesorId || clasesDelProfesor.length === 0) {
             contenedor.innerHTML = "<p>No se pudo cargar la información del profesor o sus clases. Intente recargar.</p>";
             return;
@@ -209,33 +198,33 @@
             const clase = clasesDelProfesor[claseIdx];
             html += `<h3>${clase.asignatura} - ${clase.grupo}</h3>`;
 
-            let notasExistentes = [];
-            try {
-                const response = await fetch(`/api/notas?profesor_id=${profesorId}&asignatura_id=${asignaturaId}`);
-                notasExistentes = await response.json();
-                console.log("Notas existentes del backend:", notasExistentes);
-            } catch (error) {
-                console.error("Error al cargar notas del backend:", error);
-                alert("Hubo un error al cargar las notas. Por favor, intente de nuevo.");
-            }
-
             // Function to populate inputs after HTML is rendered
-            const llenarNotasEnTabla = () => {
-                notasExistentes.forEach(nota => {
-                    // Ensure tipo_nota matches the ID format (e.g., 'Evaluacion Final' -> 'evaluacionfinal')
+            const llenarNotasEnTabla = async () => {
+                const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
+                if (!currentClass) return;
+
+                let notasExistentesActualizadas = [];
+                try {
+                    const response = await fetch(`/api/notas?profesor_id=${profesorId}&asignatura_id=${asignaturaId}`);
+                    notasExistentesActualizadas = await response.json();
+                } catch (error) {
+                    console.error("Error fetching updated notes:", error);
+                    return;
+                }
+
+                notasExistentesActualizadas.forEach(nota => {
                     const tipoNotaFormatted = nota.tipo_nota.replace(/\s/g, '').toLowerCase();
                     const inputId = `grade-input-${asignaturaId}-${grupoId}-${nota.estudiante_id}-${nota.corte}-${tipoNotaFormatted}`;
                     const inputElement = document.getElementById(inputId);
                     if (inputElement) {
                         inputElement.value = nota.nota;
-                        // Trigger calculation for the current student after filling data
-                        const estudianteIndex = clase.estudiantes.findIndex(e => e.id === nota.estudiante_id);
+                        const estudianteIndex = currentClass.estudiantes.findIndex(e => e.id === nota.estudiante_id);
                         if (estudianteIndex !== -1) {
                             calcularPromedioCorte(asignaturaId, grupoId, nota.corte, estudianteIndex, nota.estudiante_id);
                         }
                     }
                 });
-                calcularPromedioFinal(asignaturaId, grupoId, clase.estudiantes.length); // Calculate all final averages
+                calcularPromedioFinal(asignaturaId, grupoId, currentClass.estudiantes.length);
             };
 
             for (let corte = 1; corte <= 3; corte++) {
@@ -284,7 +273,6 @@
                 </table>
               `;
             }
-            // Nota de evaluación final global como promedio de los promedios de cada corte
             html += `
               <h4>Promedio Final</h4>
               <table class="student-table" id="tabla-final">
@@ -310,19 +298,16 @@
             `;
             document.getElementById("notas-materia-contenedor").innerHTML = html;
             window._notasEdicionActiva = {};
-            // Re-render any existing extra columns after HTML load
             for (let corte = 1; corte <= 3; corte++) {
               if (window._colExtraCount[corte] > 0) {
-                // Manually re-add columns and set names
                 for (let i = 0; i < window._colExtraCount[corte]; i++) {
                   agregarColumnaCorte(corte, asignaturaId, grupoId, profesorId, true, window._colExtraNames[corte][i]);
                 }
               }
             }
-            llenarNotasEnTabla(); // Populate notes after all HTML (including extra columns) is ready
+            llenarNotasEnTabla();
           };
 
-          // Habilitar/Deshabilitar edición de notas por corte
           window.habilitarEdicionNotas = function(corte, activar) {
             const tabla = document.getElementById(`tabla-corte-${corte}`);
             if (!tabla) return;
@@ -333,7 +318,6 @@
             document.getElementById(`btn-agregar-col-corte-${corte}`).disabled = !activar;
             document.getElementById(`btn-quitar-col-corte-${corte}`).disabled = !activar;
             document.getElementById(`btn-editar-corte-${corte}`).disabled = activar;
-            // Habilitar edición de nombres de columnas extra si existen
             if (window._colExtraCount[corte]) {
               for (let i = 0; i < window._colExtraCount[corte]; i++) {
                 const th = document.getElementById(`extra-th-c${corte}-${i}`);
@@ -347,88 +331,75 @@
             window._notasEdicionActiva[corte] = activar;
           };
 
-          // Eliminar todas las notas de un corte (visual y del backend)
           window.eliminarNotasCorte = async function(asignaturaId, grupoId, profesorId, corte) {
             if (!window._notasEdicionActiva[corte]) return;
-            if (!confirm("¿Seguro que desea eliminar TODAS las notas de este corte para esta clase?")) return;
-
-            const tabla = document.getElementById(`tabla-corte-${corte}`);
-            if (!tabla) return;
-
-            const inputs = tabla.querySelectorAll('input.grade-input[type="number"]');
-            const promises = [];
-
-            // Collect student IDs for the current class
-            const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
-            const studentsInClass = currentClass ? currentClass.estudiantes : [];
-
-            // Set all notes to 0 and save to backend
-            inputs.forEach(input => {
-                // Extract estudiante_id, tipo_nota from input ID
-                const parts = input.id.split('-');
-                const estudianteId = parseInt(parts[3]);
-                const tipoNota = parts[5]; // e.g., 'trabajos', 'quices', 'evaluacionfinal', 'extra0', 'extra1'
-
-                // Reset visual input
-                input.value = "";
-
-                // Send POST request to update value to 0
-                promises.push(guardarNota(estudianteId, asignaturaId, profesorId, corte, tipoNota, { value: 0 }));
-            });
+            if (!confirm("¿Seguro que desea eliminar TODAS las notas de este corte para esta clase? Esta acción es irreversible.")) return;
 
             try {
-                await Promise.all(promises);
-                alert("Notas del corte eliminadas correctamente.");
-                // Also put in 0.0 the averages for that cut and update final average
-                const rows = tabla.querySelectorAll("tbody tr");
-                rows.forEach((tr, idxEst) => {
-                    const promInput = tr.querySelector('input[readonly][id^="prom-c"]');
-                    if (promInput) promInput.value = "0.0";
+                const response = await fetch("/api/notas/bulk_delete", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        profesor_id: profesorId,
+                        asignatura_id: asignaturaId,
+                        corte: corte
+                    })
                 });
-                // Update final averages
-                calcularPromedioFinal(asignaturaId, grupoId, studentsInClass.length);
+                const result = await response.json();
+                if (result.success) {
+                    alert("Notas del corte eliminadas correctamente.");
+                    const tabla = document.getElementById(`tabla-corte-${corte}`);
+                    if (tabla) {
+                        tabla.querySelectorAll('input.grade-input[type="number"]').forEach(input => input.value = "");
+                        tabla.querySelectorAll('input[readonly][id^="prom-c"]').forEach(input => input.value = "0.0");
+                    }
+                    const currentClassObj = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
+                    if (currentClassObj) {
+                         currentClassObj.estudiantes.forEach((estudiante) => {
+                             calcularPromedioFinal(asignaturaId, grupoId, currentClassObj.estudiantes.length);
+                         });
+                    }
+                } else {
+                    alert(`Error al eliminar las notas del corte: ${result.message}`);
+                }
             } catch (error) {
-                console.error("Error al eliminar notas del corte:", error);
-                alert("Error al eliminar las notas del corte.");
+                console.error("Error de conexión al eliminar notas del corte:", error);
+                alert("Error de conexión al eliminar las notas del corte.");
             }
           };
 
-          // Agregar columna extra a un corte (después de Trabajos y Quices)
           window.agregarColumnaCorte = function(corte, asignaturaId, grupoId, profesorId, isReload = false, colName = "Extra") {
             if (!isReload && !window._notasEdicionActiva[corte]) return;
             if (!window._colExtraCount[corte]) window._colExtraCount[corte] = 0;
-            if (window._colExtraCount[corte] >= 2) return; // Máximo 2 extras
+            if (window._colExtraCount[corte] >= 2) return;
 
             const tabla = document.getElementById(`tabla-corte-${corte}`);
             if (!tabla) return;
             const theadRow = tabla.querySelector("thead tr");
             const rows = tabla.querySelectorAll("tbody tr");
             
-            // Determine insertion index based on existing extra columns
             let insertIdx;
             let tipoNotaExtra;
             if (window._colExtraCount[corte] === 0) {
-              insertIdx = 2; // After 'Trabajos'
+              insertIdx = 2;
               tipoNotaExtra = 'Extra1';
-            } else { // window._colExtraCount[corte] === 1
-              insertIdx = 4; // After 'Quices' (assuming first extra was inserted)
+            } else {
+              insertIdx = 4;
               tipoNotaExtra = 'Extra2';
             }
 
-            // Insert editable header
             const th = document.createElement("th");
-            th.textContent = colName; // Use passed name or default
+            th.textContent = colName;
             th.id = `extra-th-c${corte}-${window._colExtraCount[corte]}`;
             th.contentEditable = "true";
             th.className = "editable-th";
-            th.setAttribute('data-tipo-nota-extra', tipoNotaExtra); // Store the note type for this column
-            th.onblur = function() { // Save column name when focus is lost
+            th.setAttribute('data-tipo-nota-extra', tipoNotaExtra);
+            th.onblur = function() {
                 if (!window._colExtraNames[corte]) window._colExtraNames[corte] = [];
-                window._colExtraNames[corte][window._colExtraCount[corte] -1] = this.textContent; // Update the stored name
+                window._colExtraNames[corte][window._colExtraCount[corte] -1] = this.textContent;
             };
             theadRow.insertBefore(th, theadRow.children[insertIdx]);
             
-            // Store initial column name if not provided (i.e., new column)
             if (!isReload) {
               if (!window._colExtraNames[corte]) window._colExtraNames[corte] = [];
               window._colExtraNames[corte].push(colName);
@@ -436,14 +407,12 @@
 
             const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
 
-            // Insert input in each row
             currentClass.estudiantes.sort((a,b) => a.nombre.localeCompare(b.nombre)).forEach((estudiante, idxEst) => {
               const td = document.createElement("td");
               const inputId = `grade-input-${asignaturaId}-${grupoId}-${estudiante.id}-${corte}-${tipoNotaExtra.toLowerCase()}`;
               td.innerHTML = `<input type="number" class="grade-input extra-col" id="${inputId}" placeholder="${colName}" min="0" max="5" step="0.1"
                   oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${idxEst}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, '${tipoNotaExtra}', this)"
                   ${window._notasEdicionActiva[corte] ? "" : "readonly"}>`;
-              // Get the correct row from the table based on student ID
               const targetRow = Array.from(tabla.querySelectorAll("tbody tr")).find(row => {
                   const firstInput = row.querySelector('input[id^="grade-input-"]');
                   if (firstInput) {
@@ -459,61 +428,62 @@
             window._colExtraCount[corte]++;
           };
 
-          // Eliminar columna extra de un corte
           window.eliminarColumnaCorte = async function(corte, asignaturaId, grupoId, profesorId) {
             if (!window._notasEdicionActiva[corte]) return;
             if (!window._colExtraCount[corte] || window._colExtraCount[corte] === 0) return;
             
-            if (!confirm("¿Seguro que desea eliminar esta columna? Esto eliminará todas las notas asociadas a ella.")) return;
-
-            const tabla = document.getElementById(`tabla-corte-${corte}`);
-            if (!tabla) return;
-            const theadRow = tabla.querySelector("thead tr");
-            const rows = tabla.querySelectorAll("tbody tr");
-
             let removeIdx;
             let tipoNotaToRemove;
             let colExtraIndex;
 
             if (window._colExtraCount[corte] === 2) {
-              removeIdx = 4; // Second extra column (Extra2)
+              removeIdx = 4;
               tipoNotaToRemove = 'Extra2';
               colExtraIndex = 1;
-            } else { // window._colExtraCount[corte] === 1
-              removeIdx = 2; // First extra column (Extra1)
+            } else {
+              removeIdx = 2;
               tipoNotaToRemove = 'Extra1';
               colExtraIndex = 0;
             }
 
-            // Delete notes from backend for this column (by setting to 0)
-            const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
-            const studentsInClass = currentClass ? currentClass.estudiantes : [];
-            const updatePromises = studentsInClass.map(async (estudiante) => {
-                // Send POST request to update value to 0
-                return guardarNota(estudiante.id, asignaturaId, profesorId, corte, tipoNotaToRemove, { value: 0 });
-            });
+            if (!confirm(`¿Seguro que desea eliminar la columna "${window._colExtraNames[corte][colExtraIndex]}"? Esto eliminará todas las notas asociadas a ella.`)) return;
 
             try {
-                await Promise.all(updatePromises);
+                const response = await fetch("/api/notas/bulk_delete", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        profesor_id: profesorId,
+                        asignatura_id: asignaturaId,
+                        corte: corte,
+                        tipo_nota: tipoNotaToRemove
+                    })
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    throw new Error(result.message || "Error al eliminar notas de la columna.");
+                }
                 alert("Columna y sus notas eliminadas correctamente.");
 
-                // Remove from DOM
+                const tabla = document.getElementById(`tabla-corte-${corte}`);
+                const theadRow = tabla.querySelector("thead tr");
+                const rows = tabla.querySelectorAll("tbody tr");
+
                 theadRow.removeChild(theadRow.children[removeIdx]);
                 rows.forEach(tr => {
                     tr.removeChild(tr.children[removeIdx]);
                 });
 
-                // Update internal state
                 window._colExtraCount[corte]--;
                 if (window._colExtraNames[corte]) {
-                    window._colExtraNames[corte].splice(colExtraIndex, 1); // Remove the name
+                    window._colExtraNames[corte].splice(colExtraIndex, 1);
                 }
 
-                // Recalculate averages after deletion
-                studentsInClass.forEach((estudiante, idxEst) => {
+                const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
+                currentClass.estudiantes.forEach((estudiante, idxEst) => {
                     calcularPromedioCorte(asignaturaId, grupoId, corte, idxEst, estudiante.id);
                 });
-                calcularPromedioFinal(asignaturaId, grupoId, studentsInClass.length);
+                calcularPromedioFinal(asignaturaId, grupoId, currentClass.estudiantes.length);
 
             } catch (error) {
                 console.error("Error al eliminar columna y notas:", error);
@@ -525,9 +495,7 @@
           window.calcularPromedioCorte = function(asignaturaId, grupoId, corte, idxEst, estudianteId) {
             const tabla = document.getElementById(`tabla-corte-${corte}`);
             if (!tabla) return;
-            // Find the actual student row using their ID
             const tr = Array.from(tabla.querySelectorAll("tbody tr")).find(row => {
-                // Get the ID of the first input in the row and extract student ID
                 const inputId = row.querySelector('input[id^="grade-input-"]').id;
                 const parts = inputId.split('-');
                 return parseInt(parts[3]) === estudianteId;
@@ -556,15 +524,15 @@
             // Evaluación Final
             vals.push(parseFloat(document.getElementById(`grade-input-${asignaturaId}-${grupoId}-${estudianteId}-${corte}-evaluacionfinal`).value) || 0);
             
-            // Promedio
             let prom = 0.0;
-            const nonZeroVals = vals.filter(v => v !== 0);
-            if (nonZeroVals.length > 0) {
-              prom = (nonZeroVals.reduce((a, b) => a + b, 0) / nonZeroVals.length).toFixed(2);
+            // CORRECTED: Average over all valid numerical values, including 0
+            const validVals = vals.filter(v => !isNaN(v)); // Keep all numbers, including 0.
+            if (validVals.length > 0) {
+              prom = (validVals.reduce((a, b) => a + b, 0) / validVals.length).toFixed(2);
             } else {
               prom = "0.0";
             }
-            document.getElementById(`prom-c${corte}-${estudianteId}`).value = prom;
+            document.getElementById(`prom-c${corte}-${estudiante.id}`).value = prom;
 
             const currentClassObj = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
             calcularPromedioFinal(asignaturaId, grupoId, currentClassObj.estudiantes.length);
@@ -580,9 +548,13 @@
               let count = 0;
               for (let corte = 1; corte <= 3; corte++) {
                 const promInput = document.getElementById(`prom-c${corte}-${estudiante.id}`);
-                if (promInput && promInput.value !== "" && parseFloat(promInput.value) !== 0) {
-                  suma += parseFloat(promInput.value) || 0;
-                  count++;
+                // CORRECTED: Check if input exists and is a valid number (0 is valid)
+                if (promInput && promInput.value !== "") {
+                  const promValue = parseFloat(promInput.value);
+                  if (!isNaN(promValue)) {
+                    suma += promValue;
+                    count++;
+                  }
                 }
               }
               const finalInput = document.getElementById(`final-${estudiante.id}`);
@@ -590,14 +562,12 @@
             });
           };
 
-          // Función para guardar una nota en el backend (crea o actualiza)
           window.guardarNota = async function(estudianteId, asignaturaId, profesorId, corte, tipoNota, inputElement) {
             const notaValue = parseFloat(inputElement.value);
-            const nota = isNaN(notaValue) ? 0 : notaValue; // Save 0 if empty/invalid
+            const nota = isNaN(notaValue) ? 0 : notaValue;
 
             if (nota < 0 || nota > 5) {
                 console.error(`Nota inválida para ${tipoNota}: ${nota}`);
-                // You might want to revert the input value or show a specific error to the user
                 return;
             }
 
@@ -619,7 +589,6 @@
                 const result = await response.json();
                 if (result.success) {
                     console.log(`Nota para ${tipoNota} del estudiante ${estudianteId} en corte ${corte} guardada/actualizada.`);
-                    // Optionally provide visual feedback, e.g., a small checkmark next to the input
                 } else {
                     console.error("Error al guardar nota:", result.message);
                     alert(`Error al guardar la nota: ${result.message}`);
@@ -649,6 +618,10 @@
           contenedor.innerHTML = horarioHTML;
           break;
 
+        case 'asistencia':
+            cargarVistaAsistencia(contenedor, currentProfesorId, clasesDelProfesor);
+            break;
+
         case 'info-general':
           if (profesorDatosGenerales.nombreprofesor) {
             contenedor.innerHTML = `
@@ -666,6 +639,132 @@
         default:
           contenedor.innerHTML = "<p>Seleccione una opción del menú.</p>";
       }
+    }
+
+    async function cargarVistaAsistencia(contenedor, profesorId, clases) {
+        contenedor.innerHTML = `
+            <h2>Registro de Asistencia</h2>
+            <div style="margin-bottom: 1rem;">
+                <label for="asistencia-clase-select">Seleccionar Clase:</label>
+                <select id="asistencia-clase-select" class="menu-button" style="width:auto; display:inline-block; margin-left:0.5rem;">
+                    <option value="">-- Seleccione una clase --</option>
+                    ${clases.map(clase => `<option value="${clase.asignatura_id}-${clase.grupo_id}">${clase.asignatura} - ${clase.grupo}</option>`).join('')}
+                </select>
+                <label for="asistencia-fecha-input" style="margin-left:1rem;">Fecha:</label>
+                <input type="date" id="asistencia-fecha-input" class="grade-input" style="width:auto; display:inline-block; margin-left:0.5rem;">
+                <button class="menu-button" style="margin-left:1rem;" onclick="mostrarEstudiantesParaAsistencia()">Cargar Estudiantes</button>
+            </div>
+            <div id="asistencia-estudiantes-contenedor">
+                <p>Seleccione una clase y una fecha para cargar la lista de estudiantes.</p>
+            </div>
+        `;
+
+        window.mostrarEstudiantesParaAsistencia = async function() {
+            const selectElement = document.getElementById('asistencia-clase-select');
+            const fechaInput = document.getElementById('asistencia-fecha-input');
+            const [selectedAsignaturaId, selectedGrupoId] = selectElement.value.split('-').map(Number);
+            const selectedFecha = fechaInput.value;
+
+            if (!selectedAsignaturaId || !selectedGrupoId || !selectedFecha) {
+                alert("Por favor, seleccione una clase y una fecha.");
+                return;
+            }
+
+            const claseSeleccionada = clases.find(c => c.asignatura_id === selectedAsignaturaId && c.grupo_id === selectedGrupoId);
+            if (!claseSeleccionada) {
+                document.getElementById('asistencia-estudiantes-contenedor').innerHTML = "<p>Clase no encontrada.</p>";
+                return;
+            }
+
+            let estudiantesHTML = `
+                <h3>Lista de Estudiantes para ${claseSeleccionada.asignatura} - ${claseSeleccionada.grupo} en ${selectedFecha}</h3>
+                <table class="student-table">
+                    <thead>
+                        <tr>
+                            <th>Estudiante</th>
+                            <th>Presente</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            const estudiantes = claseSeleccionada.estudiantes.sort((a,b) => a.nombre.localeCompare(b.nombre));
+            
+            let asistenciaExistente = [];
+            try {
+                const response = await fetch(`/api/asistencia?asignatura_id=${selectedAsignaturaId}&grupo_id=${selectedGrupoId}&fecha=${selectedFecha}`);
+                asistenciaExistente = await response.json();
+                console.log("Asistencia existente:", asistenciaExistente);
+            } catch (error) {
+                console.error("Error al cargar asistencia existente:", error);
+                alert("Hubo un error al cargar la asistencia. Por favor, intente de nuevo.");
+            }
+
+            estudiantes.forEach(estudiante => {
+                const isPresente = asistenciaExistente.some(a => a.estudiante_id === estudiante.id && a.presente);
+                estudiantesHTML += `
+                    <tr>
+                        <td>${estudiante.nombre}</td>
+                        <td>
+                            <input type="checkbox" id="presente-${estudiante.id}" data-estudiante-id="${estudiante.id}"
+                                ${isPresente ? 'checked' : ''}>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            estudiantesHTML += `
+                    </tbody>
+                </table>
+                <button class="menu-button" style="margin-top:1rem;" onclick="guardarAsistencia(${selectedAsignaturaId}, ${selectedGrupoId}, '${selectedFecha}')">Guardar Asistencia</button>
+            `;
+            document.getElementById('asistencia-estudiantes-contenedor').innerHTML = estudiantesHTML;
+        };
+
+        window.guardarAsistencia = async function(asignaturaId, grupoId, fecha) {
+            const claseSeleccionada = clases.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
+            if (!claseSeleccionada) return;
+
+            const estudiantes = claseSeleccionada.estudiantes;
+            const promises = [];
+
+            estudiantes.forEach(estudiante => {
+                const checkbox = document.getElementById(`presente-${estudiante.id}`);
+                const presente = checkbox ? checkbox.checked : false;
+
+                const data = {
+                    estudiante_id: estudiante.id,
+                    asignatura_id: asignaturaId,
+                    fecha: fecha,
+                    presente: presente
+                };
+
+                promises.push(
+                    fetch("/api/asistencia", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (!result.success) {
+                            console.error(`Error al guardar asistencia para ${estudiante.nombre}:`, result.message);
+                            return Promise.reject(`Error al guardar asistencia para ${estudiante.nombre}: ${result.message}`);
+                        }
+                        return result;
+                    })
+                );
+            });
+
+            try {
+                await Promise.all(promises);
+                alert("Asistencia guardada correctamente.");
+                mostrarEstudiantesParaAsistencia();
+            } catch (error) {
+                console.error("Error al guardar asistencia:", error);
+                alert("Hubo un error al guardar la asistencia de algunos estudiantes.");
+            }
+        };
     }
 
     function cerrarSesion() {

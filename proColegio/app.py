@@ -47,18 +47,20 @@ def login():
         cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
         # Buscar primero en Profesores
-        cur.execute("SELECT NombreProfesor AS nombre, ApellidoProfesor AS apellido, Contrasena FROM Profesores WHERE EmailProfesor=%s", (email,))
+        cur.execute("SELECT Profesor_ID, NombreProfesor AS nombre, ApellidoProfesor AS apellido, Contrasena FROM Profesores WHERE EmailProfesor=%s", (email,))
         user = cur.fetchone()
         if user:
             if bcrypt.check_password_hash(user["contrasena"], password):
-                return jsonify({"success": True, "tipo": "profesor", "nombre": user["nombre"], "apellido": user["apellido"]})
+                # Store professor_id in the session/response if needed for later API calls
+                return jsonify({"success": True, "tipo": "profesor", "profesor_id": user["profesor_id"], "nombre": user["nombre"], "apellido": user["apellido"]})
 
         # Buscar en Estudiantes
-        cur.execute("SELECT NombreEstudiante AS nombre, ApellidoEstudiante AS apellido, Contrasena FROM Estudiantes WHERE EmailEstudiante=%s", (email,))
+        cur.execute("SELECT Estudiante_ID, NombreEstudiante AS nombre, ApellidoEstudiante AS apellido, Contrasena FROM Estudiantes WHERE EmailEstudiante=%s", (email,))
         user = cur.fetchone()
         if user:
             if bcrypt.check_password_hash(user["contrasena"], password):
-                return jsonify({"success": True, "tipo": "estudiante", "nombre": user["nombre"], "apellido": user["apellido"]})
+                # Store estudiante_id in the session/response if needed for later API calls
+                return jsonify({"success": True, "tipo": "estudiante", "estudiante_id": user["estudiante_id"], "nombre": user["nombre"], "apellido": user["apellido"]})
 
         return jsonify({"success": False, "message": "Credenciales incorrectas"}), 401
     except (Exception, psycopg2.Error) as error:
@@ -96,12 +98,17 @@ def get_estudiantes():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     grupo_id = request.args.get('grupo_id')  # Allow filtering by grupo ID
+    estudiante_id = request.args.get('estudiante_id') # Allow filtering by student ID
 
     query = "SELECT * FROM Estudiantes WHERE 1=1"
     params = []
     if grupo_id:
         query += " AND Grupo_ID = %s"
         params.append(grupo_id)
+    if estudiante_id:
+        query += " AND Estudiante_ID = %s"
+        params.append(estudiante_id)
+
 
     cur.execute(query, params)
     rows = cur.fetchall()
@@ -113,7 +120,15 @@ def get_estudiantes():
 def get_aulas():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cur.execute("SELECT * FROM Aulas")
+    aula_id = request.args.get('aula_id')
+
+    query = "SELECT * FROM Aulas WHERE 1=1"
+    params = []
+    if aula_id:
+        query += " AND Aula_ID = %s"
+        params.append(aula_id)
+
+    cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -160,12 +175,36 @@ def get_horarios():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     profesor_id = request.args.get('profesor_id')  # Allow filtering by professor ID
+    estudiante_id = request.args.get('estudiante_id') # Filter for student's schedules
 
-    query = "SELECT * FROM Horarios WHERE 1=1"
+    query = """
+        SELECT h.Horario_ID, h.Asignatura_ID, s.NombreAsignatura,
+               h.Profesor_ID, p.NombreProfesor, p.ApellidoProfesor,
+               h.Aula_ID, a.NombreAula,
+               h.Grupo_ID, g.NombreGrupo,
+               h.DiaSemana, h.HoraInicio, h.HoraFin
+        FROM Horarios h
+        JOIN Asignaturas s ON h.Asignatura_ID = s.Asignatura_ID
+        JOIN Profesores p ON h.Profesor_ID = p.Profesor_ID
+        JOIN Aulas a ON h.Aula_ID = a.Aula_ID
+        JOIN Grupos g ON h.Grupo_ID = g.Grupo_ID
+        WHERE 1=1
+    """
     params = []
     if profesor_id:
-        query += " AND Profesor_ID = %s"
+        query += " AND h.Profesor_ID = %s"
         params.append(profesor_id)
+    if estudiante_id:
+        # Get the group_id for the student and filter by that
+        cur.execute("SELECT Grupo_ID FROM Estudiantes WHERE Estudiante_ID = %s", (estudiante_id,))
+        student_group = cur.fetchone()
+        if student_group:
+            query += " AND h.Grupo_ID = %s"
+            params.append(student_group[0])
+        else:
+            return jsonify([]), 200 # No group found for student, so no schedules
+
+    query += " ORDER BY h.DiaSemana, h.HoraInicio"
 
     cur.execute(query, params)
     rows = cur.fetchall()
@@ -181,6 +220,8 @@ def get_notas():
     profesor_id = request.args.get('profesor_id')
     estudiante_id = request.args.get('estudiante_id')
     asignatura_id = request.args.get('asignatura_id')
+    corte = request.args.get('corte')
+    tipo_nota = request.args.get('tipo_nota')
 
     query = """
         SELECT n.nota_id, n.estudiante_id, n.asignatura_id, n.profesor_id, n.corte, n.tipo_nota, n.nota,
@@ -203,6 +244,12 @@ def get_notas():
     if asignatura_id:
         query += " AND n.asignatura_id = %s"
         params.append(asignatura_id)
+    if corte:
+        query += " AND n.corte = %s"
+        params.append(corte)
+    if tipo_nota:
+        query += " AND n.tipo_nota = %s"
+        params.append(tipo_nota)
 
     query += " ORDER BY n.estudiante_id, n.asignatura_id, n.profesor_id, n.corte, n.tipo_nota"
 
@@ -281,6 +328,161 @@ def delete_nota(nota_id):
         if conn:
             cur.close()
             conn.close()
+
+# NEW: Bulk Delete Notes Endpoint
+@app.route('/api/notas/bulk_delete', methods=['POST'])
+def bulk_delete_notas():
+    data = request.json
+    profesor_id = data.get('profesor_id')
+    asignatura_id = data.get('asignatura_id')
+    corte = data.get('corte')
+    tipo_nota = data.get('tipo_nota') # Optional: if deleting specific column notes
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        query = "DELETE FROM Notas WHERE profesor_id = %s AND asignatura_id = %s AND corte = %s"
+        params = [profesor_id, asignatura_id, corte]
+
+        if tipo_nota:
+            query += " AND tipo_nota = %s"
+            params.append(tipo_nota)
+
+        cur.execute(query, params)
+        conn.commit()
+        return jsonify({"success": True, "message": "Notas eliminadas correctamente."}), 200
+    except (Exception, psycopg2.Error) as error:
+        conn.rollback()
+        print(f"Error al eliminar notas en masa: {error}")
+        return jsonify({"success": False, "message": f"Error al eliminar notas en masa: {error}"}), 500
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+
+# NEW: Asistencia Endpoints
+@app.route('/api/asistencia', methods=['GET'])
+def get_asistencia():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    estudiante_id = request.args.get('estudiante_id')
+    asignatura_id = request.args.get('asignatura_id')
+    fecha = request.args.get('fecha') # YYYY-MM-DD
+    grupo_id = request.args.get('grupo_id') # Filter by group for professor view
+
+    query = """
+        SELECT a.Asistencia_ID, a.Estudiante_ID, e.NombreEstudiante, e.ApellidoEstudiante,
+               a.Asignatura_ID, s.NombreAsignatura, a.Fecha, a.Presente, g.NombreGrupo
+        FROM Asistencia a
+        JOIN Estudiantes e ON a.Estudiante_ID = e.Estudiante_ID
+        JOIN Asignaturas s ON a.Asignatura_ID = s.Asignatura_ID
+        LEFT JOIN Grupos g ON e.Grupo_ID = g.Grupo_ID -- Join to get group name
+        WHERE 1=1
+    """
+    params = []
+
+    if estudiante_id:
+        query += " AND a.Estudiante_ID = %s"
+        params.append(estudiante_id)
+    if asignatura_id:
+        query += " AND a.Asignatura_ID = %s"
+        params.append(asignatura_id)
+    if fecha:
+        query += " AND a.Fecha = %s"
+        params.append(fecha)
+    if grupo_id:
+        query += " AND e.Grupo_ID = %s" # Filter students by their group
+        params.append(grupo_id)
+
+    query += " ORDER BY a.Fecha DESC, e.NombreEstudiante, s.NombreAsignatura"
+
+    cur.execute(query, params)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+@app.route('/api/asistencia', methods=['POST'])
+def record_asistencia():
+    data = request.json
+    estudiante_id = data.get('estudiante_id')
+    asignatura_id = data.get('asignatura_id')
+    fecha = data.get('fecha')
+    presente = data.get('presente') # Boolean
+
+    if not all([estudiante_id, asignatura_id, fecha, presente is not None]):
+        return jsonify({"success": False, "message": "Datos incompletos para asistencia"}), 400
+
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
+        # Check if attendance already exists for this student, class, and date
+        cur.execute("""
+            SELECT Asistencia_ID FROM Asistencia
+            WHERE Estudiante_ID = %s AND Asignatura_ID = %s AND Fecha = %s
+        """, (estudiante_id, asignatura_id, fecha))
+        existing_attendance = cur.fetchone()
+
+        if existing_attendance:
+            cur.execute("""
+                UPDATE Asistencia SET Presente = %s
+                WHERE Asistencia_ID = %s
+            """, (presente, existing_attendance[0]))
+            asistencia_id = existing_attendance[0]
+            action = "updated"
+        else:
+            cur.execute("""
+                INSERT INTO Asistencia (Estudiante_ID, Asignatura_ID, Fecha, Presente)
+                VALUES (%s, %s, %s, %s)
+                RETURNING Asistencia_ID
+            """, (estudiante_id, asignatura_id, fecha, presente))
+            asistencia_id = cur.fetchone()[0]
+            action = "created"
+
+        conn.commit()
+        return jsonify({"success": True, "asistencia_id": asistencia_id, "message": f"Asistencia {action} correctamente"}), 200
+    except (Exception, psycopg2.Error) as error:
+        conn.rollback()
+        print(f"Error al registrar asistencia: {error}")
+        return jsonify({"success": False, "message": f"Error al registrar asistencia: {error}"}), 500
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+# NEW: Advisory Endpoints (Asesorias) - Placeholder
+@app.route('/api/asesorias', methods=['GET'])
+def get_asesorias():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    profesor_id = request.args.get('profesor_id')
+    # You might want to add filters for student_id to show only relevant asesorias for a student
+
+    query = """
+        SELECT a.Asesoria_ID, a.Profesor_ID, p.NombreProfesor, p.ApellidoProfesor,
+               a.Titulo, a.Descripcion, a.Fecha, a.HoraInicio, a.HoraFin,
+               a.Aula_ID, au.NombreAula, a.Capacidad
+        FROM Asesorias a
+        JOIN Profesores p ON a.Profesor_ID = p.Profesor_ID
+        LEFT JOIN Aulas au ON a.Aula_ID = au.Aula_ID
+        WHERE 1=1
+    """
+    params = []
+    if profesor_id:
+        query += " AND a.Profesor_ID = %s"
+        params.append(profesor_id)
+
+    query += " ORDER BY a.Fecha, a.HoraInicio"
+
+    cur.execute(query, params)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
 
 @app.route('/favicon.ico')
 def favicon():

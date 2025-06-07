@@ -5,14 +5,17 @@ def init_db(conn):
     bcrypt = Bcrypt()  # Inicializar Bcrypt
 
     with conn.cursor() as cur:
-        # Borrar tablas si existen
+        # Borrar tablas si existen (orden inverso para evitar problemas de FK)
+        cur.execute("DROP TABLE IF EXISTS Asistencia CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Horarios CASCADE;")
+        cur.execute("DROP TABLE IF EXISTS Notas CASCADE;")
+        cur.execute("DROP TABLE IF EXISTS Asesorias CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Estudiantes CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Grupos CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Asignaturas CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Profesores CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Aulas CASCADE;")
-        cur.execute("DROP TABLE IF EXISTS Notas CASCADE;")
+
 
         # Crear tablas
         cur.execute("""
@@ -89,6 +92,33 @@ def init_db(conn):
             UNIQUE (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota)
         );
         """)
+        # New table for Asistencia
+        cur.execute("""
+        CREATE TABLE Asistencia (
+            Asistencia_ID SERIAL PRIMARY KEY,
+            Estudiante_ID INTEGER REFERENCES Estudiantes(Estudiante_ID),
+            Asignatura_ID INTEGER REFERENCES Asignaturas(Asignatura_ID),
+            Fecha DATE NOT NULL,
+            Presente BOOLEAN NOT NULL,
+            UNIQUE (Estudiante_ID, Asignatura_ID, Fecha)
+        );
+        """)
+        # New table for Asesorias
+        cur.execute("""
+        CREATE TABLE Asesorias (
+            Asesoria_ID SERIAL PRIMARY KEY,
+            Profesor_ID INTEGER REFERENCES Profesores(Profesor_ID),
+            Titulo VARCHAR(100) NOT NULL,
+            Descripcion TEXT,
+            Fecha DATE NOT NULL,
+            HoraInicio TIME NOT NULL,
+            HoraFin TIME NOT NULL,
+            Aula_ID INTEGER REFERENCES Aulas(Aula_ID),
+            Capacidad INTEGER,
+            CONSTRAINT chk_HoraAsesoria CHECK (HoraFin > HoraInicio)
+        );
+        """)
+
 
         # Insertar datos en Grupos
         cur.execute("INSERT INTO Grupos (Grupo_ID, NombreGrupo, NivelGrupo, CapacidadGrupo) VALUES (1, 'AR', 'Nivel I', 12);")
@@ -160,16 +190,12 @@ def init_db(conn):
 
         # Insertar datos en Horarios
         horarios = [
-            # Lógica: Lunes y Miércoles de 2:00 PM a 4:00 PM
             (1, 1, 1, 1, 'Lunes', '2025-01-01 14:00:00', '2025-01-01 16:00:00'),
             (1, 1, 1, 1, 'Miércoles', '2025-01-01 14:00:00', '2025-01-01 16:00:00'),
-            # Base de Datos: Jueves y Sábados de 4:00 PM a 6:00 PM
             (2, 2, 2, 2, 'Jueves', '2025-01-01 16:00:00', '2025-01-01 18:00:00'),
             (2, 2, 2, 2, 'Sábado', '2025-01-01 16:00:00', '2025-01-01 18:00:00'),
-            # Desarrollo de Plataformas: Martes y Jueves de 2:00 PM a 4:00 PM
             (3, 3, 3, 3, 'Martes', '2025-01-01 14:00:00', '2025-01-01 16:00:00'),
             (3, 3, 3, 3, 'Jueves', '2025-01-01 14:00:00', '2025-01-01 16:00:00'),
-            # Investigación: Lunes y Viernes de 9:00 AM a 11:00 AM
             (4, 4, 4, 2, 'Lunes', '2025-01-01 09:00:00', '2025-01-01 11:00:00'),
             (4, 4, 4, 3, 'Viernes', '2025-01-01 09:00:00', '2025-01-01 11:00:00')
         ]
@@ -177,6 +203,30 @@ def init_db(conn):
             "INSERT INTO Horarios (Asignatura_ID, Profesor_ID, Aula_ID, Grupo_ID, DiaSemana, HoraInicio, HoraFin) VALUES (%s, %s, %s, %s, %s, %s, %s);",
             horarios
         )
+
+        # Insertar datos de Asistencia (Ejemplos)
+        asistencia_data = [
+            (1, 1, '2025-06-03', True), # Kevin Marquez, Base de Datos, 2025-06-03, Presente
+            (1, 1, '2025-06-05', False), # Kevin Marquez, Base de Datos, 2025-06-05, Ausente
+            (2, 2, '2025-06-03', True), # Sebastian Rolon, Logica, 2025-06-03, Presente
+            (3, 3, '2025-06-03', True), # Julio Carrillo, Investigacion, 2025-06-03, Presente
+            (4, 4, '2025-06-03', True)  # Geron Vergara, Desarrollo de Plataformas, 2025-06-03, Presente
+        ]
+        cur.executemany(
+            "INSERT INTO Asistencia (Estudiante_ID, Asignatura_ID, Fecha, Presente) VALUES (%s, %s, %s, %s);",
+            asistencia_data
+        )
+
+        # Insertar datos de Asesorias (Ejemplos)
+        asesorias_data = [
+            (1, 'Asesoría de Lógica', 'Repaso de conceptos de lógica proposicional.', '2025-06-10', '10:00:00', '11:00:00', 1, 5),
+            (2, 'Ayuda con SQL', 'Sesión de preguntas y respuestas sobre consultas SQL.', '2025-06-12', '15:00:00', '16:30:00', 2, 8)
+        ]
+        cur.executemany(
+            "INSERT INTO Asesorias (Profesor_ID, Titulo, Descripcion, Fecha, HoraInicio, HoraFin, Aula_ID, Capacidad) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);",
+            asesorias_data
+        )
+
 
     conn.commit()
 
@@ -189,5 +239,5 @@ if __name__ == "__main__":
         port=5432
     )
     init_db(conn)
-    print("Base de datos inicializada correctamente.")
+    print("Base de datos inicializada correctamente con las tablas Asistencia y Asesorias.")
     conn.close()
