@@ -2,8 +2,6 @@ from flask import Flask, request, jsonify, render_template, url_for, send_from_d
 import psycopg2
 import psycopg2.extras
 
-# app = Flask(__name__) # Standard way if templates/static are at the same level
-# If app.py is inside proColegio, and templates/static are also inside proColegio:
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 
@@ -130,6 +128,71 @@ def get_horarios():
     cur.close()
     conn.close()
     return jsonify([dict(row) for row in rows])
+
+@app.route('/api/notas', methods=['GET'])
+def get_notas():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute("""
+        SELECT n.nota_id, n.estudiante_id, n.asignatura_id, n.corte, n.nota,
+               e.NombreEstudiante, e.ApellidoEstudiante, a.NombreAsignatura
+        FROM Notas n
+        JOIN Estudiantes e ON n.estudiante_id = e.Estudiante_ID
+        JOIN Asignaturas a ON n.asignatura_id = a.Asignatura_ID
+        ORDER BY n.estudiante_id, n.asignatura_id, n.corte
+    """)
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+    return jsonify([dict(row) for row in rows])
+
+@app.route('/api/notas', methods=['POST'])
+def create_nota():
+    data = request.json
+    estudiante_id = data.get('estudiante_id')
+    asignatura_id = data.get('asignatura_id')
+    corte = data.get('corte')
+    nota = data.get('nota')
+    if not (estudiante_id and asignatura_id and corte and nota is not None):
+        return jsonify({"success": False, "message": "Datos incompletos"}), 400
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO Notas (estudiante_id, asignatura_id, corte, nota)
+        VALUES (%s, %s, %s, %s)
+        RETURNING nota_id
+    """, (estudiante_id, asignatura_id, corte, nota))
+    nota_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True, "nota_id": nota_id})
+
+@app.route('/api/notas/<int:nota_id>', methods=['PUT'])
+def update_nota(nota_id):
+    data = request.json
+    nota = data.get('nota')
+    if nota is None:
+        return jsonify({"success": False, "message": "Nota requerida"}), 400
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE Notas SET nota=%s WHERE nota_id=%s
+    """, (nota, nota_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True})
+
+@app.route('/api/notas/<int:nota_id>', methods=['DELETE'])
+def delete_nota(nota_id):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM Notas WHERE nota_id=%s", (nota_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"success": True})
 
 @app.route('/favicon.ico')
 def favicon():

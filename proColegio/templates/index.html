@@ -4,26 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Inicio de sesión - Colegio Pablo Neruda</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login-index.css') }}">
 </head>
-<body>
-  <header>
-    <img src="{{ url_for('static', filename='img/pabloneruda colegio.jpeg') }}" alt="Foto del Colegio Pablo Neruda">
-  </header>
+<body class="login-index-bg">
+  <div class="login-index-navbar">
+    <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo del Colegio Pablo Neruda">
+    INSTITUCIÓN EDUCATIVA PABLO NERUDA
+  </div>
 
-  <section class="login-container">
-    <div class="login-right">
-      <h1>INSTITUCIÓN EDUCATIVA PABLO NERUDA</h1>
-      <div id="fecha"></div>
+  <!-- Alerta de error personalizada -->
+  <div id="login-index-errorAlert">
+    <strong>ERROR</strong><br>
+    <span>"Los datos ingresados están mal, por favor vuelve a intentarlo."<br><span style="font-size:0.95rem;">ERROR #777 </span></span>
+    <button onclick="cerrarAlerta()">Cerrar</button>
+  </div>
+
+  <main class="login-index-main">
+    <section class="login-index-card">
+      <h1>Colegio Pablo Neruda</h1>
+      <div id="fecha" class="login-index-fecha"></div>
       <h2>INICIAR SESIÓN</h2>
       <input type="text" name="usuario" id="emailInput" placeholder="USUARIO O EMAIL">
       <input type="password" name="contrasena" id="passwordInput" placeholder="CONTRASEÑA">
       <p>¿Olvidaste la contraseña?</p>
       <button onclick="handleLogin()">INGRESAR</button>
-      <div class="quote">"Formamos ciudadanos con calidad, respeto y tolerancia"</div>
-    </div>
-  </section> <footer>
-    <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo del Colegio Pablo Neruda">
+      <div class="login-index-quote">"Formamos ciudadanos con calidad, respeto y tolerancia"</div>
+    </section>
+  </main>
+
+  <footer class="login-index-footer">
     <p><strong>📘 Colegio Pablo Neruda - Cúcuta</strong></p>
     <p>📍 Calle 12 #5-78, Barrio Centro, Cúcuta, Norte de Santander</p>
     <p>📞 (7) 582 3421 | 📱 WhatsApp: +57 313 456 7890</p>
@@ -43,7 +52,37 @@
       const hoy = new Date();
       const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
       fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
+
+      // Permitir login con Enter solo si ambos campos tienen datos
+      document.getElementById("emailInput").addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+          const email = document.getElementById("emailInput").value.trim();
+          const password = document.getElementById("passwordInput").value.trim();
+          if (email !== "" && password !== "") {
+            handleLogin();
+          }
+        }
+      });
+      document.getElementById("passwordInput").addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+          const email = document.getElementById("emailInput").value.trim();
+          const password = document.getElementById("passwordInput").value.trim();
+          if (email !== "" && password !== "") {
+            handleLogin();
+          }
+        }
+      });
     };
+
+    // Función para mostrar alerta de error
+    function mostrarAlertaError() {
+      document.getElementById("login-index-errorAlert").style.display = "block";
+    }
+
+    // Función para cerrar alerta de error
+    function cerrarAlerta() {
+      document.getElementById("login-index-errorAlert").style.display = "none";
+    }
 
     // Nueva función para manejar el inicio de sesión con el backend
     async function handleLogin() {
@@ -51,7 +90,7 @@
       const password = document.getElementById("passwordInput").value.trim();
 
       if (email === "" || password === "") {
-        alert("Por favor, ingresa tu email y contraseña.");
+        mostrarAlertaError();
         return;
       }
 
@@ -75,11 +114,10 @@
             window.location.href = "{{ url_for('inicio') }}";
           }
         } else {
-          alert(result.message || "Error al iniciar sesión. Verifica tus credenciales.");
+          mostrarAlertaError();
         }
       } catch (error) {
-        console.error("Error en el proceso de login:", error);
-        alert("Ocurrió un error al intentar iniciar sesión. Revisa la consola para más detalles.");
+        mostrarAlertaError();
       }
     }
   </script>

@@ -7,27 +7,29 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-  <div class="sidebar">
+  <div class="est-sidebar">
     <h2>MENÚ</h2>
-    <button class="menu-button" onclick="cargarVista('asignaturas')">Asignaturas</button>
-    <button class="menu-button" onclick="cargarVista('docentes')">Docentes</button>
-    <button class="menu-button" onclick="cargarVista('aulas')">Aulas</button>
-    <button class="menu-button" onclick="cargarVista('grupos')">Grupos académicos</button>
-    <button class="menu-button" onclick="cargarVista('horarios')">Generar horarios</button>
-    <button class="menu-button" onclick="cargarVista('notificaciones')">Notificaciones</button>
-    <button class="menu-button logout-button" onclick="cerrarSesion()">Cerrar sesión</button>
+    <button class="est-menu-button" onclick="cargarVista('asignaturas')">Asignaturas</button>
+    <button class="est-menu-button" onclick="cargarVista('docentes')">Docentes</button>
+    <button class="est-menu-button" onclick="cargarVista('aulas')">Aulas</button>
+    <button class="est-menu-button" onclick="cargarVista('grupos')">Grupos académicos</button>
+    <button class="est-menu-button" onclick="cargarVista('horarios')">Generar horarios</button>
+    <button class="est-menu-button" onclick="cargarVista('notificaciones')">Notificaciones</button>
+    <button class="est-menu-button est-logout-button" onclick="cerrarSesion()">Cerrar sesión</button>
   </div>
 
-  <div class="main">
-    <header>
-      BIENVENIDO <span id="usuarioNombre"></span> | <div id="fecha"></div>
+  <div class="est-main-content">
+    <header class="est-main-header">
+      <span style="flex:1; text-align:left;">BIENVENIDO</span>
+      <span id="usuarioNombre" style="flex:1; text-align:center; font-weight: bold;"></span>
+      <div id="fecha" style="flex:1; text-align:right;"></div>
     </header>
     
     <div id="contenido-principal">
       <p>Seleccione una opción del menú para ver la información.</p>
     </div>
 
-    <footer>
+    <footer class="est-footer">
       "Gestiona las asignaturas del colegio."
     </footer>
   </div>
@@ -72,7 +74,7 @@
         case 'docentes':
           contenedor.innerHTML = `
             <h2>Docentes</h2>
-            <table>
+            <table class="est-table">
               <thead>
                 <tr>
                   <th>Nombre</th>
@@ -93,7 +95,7 @@
         case 'horarios':
           contenedor.innerHTML = `
             <h2>Horarios Generados</h2>
-            <table>
+            <table class="est-table">
               <thead>
                 <tr>
                   <th>Asignatura</th>
@@ -146,7 +148,7 @@
         case 'aulas':
           contenedor.innerHTML = `
             <h2>Aulas Disponibles</h2>
-            <table>
+            <table class="est-table">
               <thead>
                 <tr>
                   <th>Nombre</th>

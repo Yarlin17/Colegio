@@ -3,20 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <title>Panel Profesor - Colegio Pablo Neruda</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-  <header>
-    BIENVENIDO PROFESOR <span id="usuarioNombre"></span> | <div id="fecha"></div>
-  </header>
-  <main>
-    <h2>Panel del Profesor</h2>
-    <p>Bienvenido al panel de gestión para profesores.</p>
-    <!-- Aquí puedes agregar más contenido específico para profesores -->
-  </main>
-  <footer>
-    "Panel exclusivo para profesores del colegio."
-  </footer>
+  <div class="sidebar">
+    <h2>MENÚ </h2>
+    <button class="menu-button" onclick="cargarVistaProfesor('clases')">Clases</button>
+    <button class="menu-button" onclick="cargarVistaProfesor('registros')">Registros</button>
+    <button class="menu-button" onclick="cargarVistaProfesor('horario')">Horario</button>
+    <button class="menu-button" onclick="cargarVistaProfesor('info-general')">Información General</button>
+    <button class="menu-button logout-button" onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+
+  <div class="main">
+    <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+      <span style="flex:1; text-align:left;">BIENVENIDO</span>
+      <span id="usuarioNombre" style="flex:1; text-align:center; font-weight: bold;"></span>
+      <div id="fecha" style="flex:1; text-align:right;"></div>
+    </header>
+
+    <div id="contenido-principal">
+      <p>Seleccione una opción del menú para ver la información del profesor.</p>
+    </div>
+
+    <footer>
+      "Panel exclusivo para profesores del colegio."
+    </footer>
+  </div>
+
   <script>
     window.onload = function () {
       const fechaElemento = document.getElementById("fecha");
@@ -36,6 +51,313 @@
 
       document.getElementById("usuarioNombre").textContent = displayName;
     };
+
+    function cargarVistaProfesor(seccion) {
+      const contenedor = document.getElementById("contenido-principal");
+
+      // Simulación de datos del profesor (¡REEMPLAZAR CON DATOS DEL BACKEND!)
+      const profesorInfo = {
+        nombre: "Jesús",
+        apellido: "Duran",
+        email: "jesus.duran@email.com",
+        telefono: "987-654-3210",
+        materia: "Matemáticas",
+        universidad: "Universidad Nacional"
+      };
+
+      const clasesProfesor = [
+        {
+          asignatura: "Lógica",
+          grupo: "10A",
+          horario: "Jueves 4:00 PM - 6:00 PM, Sábado 4:00 PM - 6:00 PM",
+          horaInicio: "16:00",
+          horaFin: "18:00",
+          aula: "GM 104-1",
+          estudiantes: ["Kevin Marquez", "Brian Acevedo", "Julian Pulido"]
+        },
+        {
+          asignatura: "Matemáticas",
+          grupo: "10B",
+          horario: "Martes 8:00 AM - 10:00 AM, Viernes 8:00 AM - 10:00 AM",
+          horaInicio: "08:00",
+          horaFin: "10:00",
+          aula: "GM 105-1",
+          estudiantes: ["Ana Perez", "Carlos Gomez", "Laura Torres"]
+        }
+      ];
+
+      switch (seccion) {
+        case 'clases':
+          let clasesHTML = '<h2>Clases que Imparte</h2>';
+          clasesProfesor.forEach(clase => {
+            clasesHTML += `
+              <div class="info-section">
+                <h3>${clase.asignatura} - ${clase.grupo}</h3>
+                <p><strong>Horario:</strong> ${clase.horario}</p>
+                <p><strong>Aula:</strong> ${clase.aula}</p>
+                <p><strong>Estudiantes:</strong> ${clase.estudiantes.join(', ')}</p>
+              </div>
+            `;
+          });
+          contenedor.innerHTML = clasesHTML;
+          break;
+
+        case 'registros':
+          let registrosHTML = '<h2>Registro de Notas</h2>';
+          // Botones para cada materia
+          registrosHTML += `<div id="notas-botones-materias" style="margin-bottom:1rem;">`;
+          clasesProfesor.forEach((clase, idx) => {
+            registrosHTML += `<button class="menu-button" style="margin-right:0.5rem;" onclick="mostrarNotasMateria(${idx})">${clase.asignatura} - ${clase.grupo}</button>`;
+          });
+          registrosHTML += `</div>`;
+          registrosHTML += `<div id="notas-materia-contenedor"></div>`;
+          contenedor.innerHTML = registrosHTML;
+
+          window.mostrarNotasMateria = function(idx) {
+            document.getElementById("notas-botones-materias").style.display = "none";
+            let html = `<button class="menu-button" style="margin-bottom:1rem;" onclick="regresarSeleccionNotas()">&larr; Regresar</button>`;
+            const clase = clasesProfesor[idx];
+            html += `<h3>${clase.asignatura} - ${clase.grupo}</h3>`;
+            for (let corte = 1; corte <= 3; corte++) {
+              // Mini menú de acciones por corte (arriba a la derecha)
+              html += `
+                <div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom:0.3rem;">
+                  <button class="mini-action-btn" id="btn-editar-corte-${corte}" onclick="habilitarEdicionNotas(${corte}, true)" title="Editar"><span>&#9998;</span></button>
+                  <button class="mini-action-btn" id="btn-eliminar-corte-${corte}" onclick="eliminarNotasCorte(${corte})" title="Eliminar" disabled><span>&#128465;</span></button>
+                  <button class="mini-action-btn" id="btn-agregar-col-corte-${corte}" onclick="agregarColumnaCorte(${corte})" title="Agregar columna" disabled><span>+</span></button>
+                  <button class="mini-action-btn" id="btn-quitar-col-corte-${corte}" onclick="eliminarColumnaCorte(${corte})" title="Eliminar columna" disabled><span>-</span></button>
+                </div>
+              `;
+              html += `
+                <table class="student-table" id="tabla-corte-${corte}">
+                  <thead>
+                    <tr id="thead-corte-${corte}">
+                      <th>Estudiante</th>
+                      <th>Trabajos</th>
+                      <th>Quices</th>
+                      <th>Evaluación Final</th>
+                      <th>Promedio Corte</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+              `;
+              clase.estudiantes.sort().forEach((estudiante, idxEst) => {
+                const idTrab = `trabajos-c${corte}-${idxEst}`;
+                const idQuiz = `quices-c${corte}-${idxEst}`;
+                const idEval = `eval-c${corte}-${idxEst}`;
+                const idProm = `prom-c${corte}-${idxEst}`;
+                html += `
+                  <tr>
+                    <td>${estudiante}</td>
+                    <td><input type="number" class="grade-input" id="${idTrab}" placeholder="Trabajos" oninput="calcularPromedioCorte(${corte},${idxEst});calcularPromedioFinal(${clase.estudiantes.length})" readonly></td>
+                    <td><input type="number" class="grade-input" id="${idQuiz}" placeholder="Quices" oninput="calcularPromedioCorte(${corte},${idxEst});calcularPromedioFinal(${clase.estudiantes.length})" readonly></td>
+                    <td><input type="number" class="grade-input" id="${idEval}" placeholder="Evaluación Final" oninput="calcularPromedioCorte(${corte},${idxEst});calcularPromedioFinal(${clase.estudiantes.length})" readonly></td>
+                    <td><input type="text" class="grade-input" id="${idProm}" placeholder="Promedio" readonly style="background:#f5f5f5;"></td>
+                  </tr>
+                `;
+              });
+              html += `
+                  </tbody>
+                </table>
+              `;
+            }
+            // Nota de evaluación final global como promedio de los promedios de cada corte
+            html += `
+              <h4>Promedio Final</h4>
+              <table class="student-table" id="tabla-final">
+                <thead>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Promedio Final</th>
+                  </tr>
+                </thead>
+                <tbody>
+            `;
+            clase.estudiantes.sort().forEach((estudiante, idxEst) => {
+              html += `
+                <tr>
+                  <td>${estudiante}</td>
+                  <td><input type="text" class="grade-input" id="final-${idxEst}" placeholder="Promedio Final" readonly style="background:#f5f5f5;"></td>
+                </tr>
+              `;
+            });
+            html += `
+                </tbody>
+              </table>
+            `;
+            document.getElementById("notas-materia-contenedor").innerHTML = html;
+            window._notasEdicionActiva = {};
+            window._colExtraCount = {};
+            window._colExtraNames = {};
+          };
+
+          // Habilitar/Deshabilitar edición de notas por corte
+          window.habilitarEdicionNotas = function(corte, activar) {
+            const tabla = document.getElementById(`tabla-corte-${corte}`);
+            if (!tabla) return;
+            tabla.querySelectorAll('input.grade-input').forEach(input => {
+              if (input.type === "number") input.readOnly = !activar;
+            });
+            document.getElementById(`btn-eliminar-corte-${corte}`).disabled = !activar;
+            document.getElementById(`btn-agregar-col-corte-${corte}`).disabled = !activar;
+            document.getElementById(`btn-quitar-col-corte-${corte}`).disabled = !activar;
+            document.getElementById(`btn-editar-corte-${corte}`).disabled = activar;
+            // Habilitar edición de nombres de columnas extra si existen
+            if (window._colExtraCount[corte]) {
+              for (let i = 0; i < window._colExtraCount[corte]; i++) {
+                const th = document.getElementById(`extra-th-c${corte}-${i}`);
+                if (th) th.contentEditable = activar ? "true" : "false";
+                if (activar) th.classList.add("editable-th");
+                else th.classList.remove("editable-th");
+              }
+            }
+            window._notasEdicionActiva[corte] = activar;
+          };
+
+          // Eliminar todas las notas de un corte
+          window.eliminarNotasCorte = function(corte) {
+            if (!window._notasEdicionActiva[corte]) return;
+            if (!confirm("¿Seguro que desea eliminar todas las notas de este corte?")) return;
+            const tabla = document.getElementById(`tabla-corte-${corte}`);
+            if (!tabla) return;
+            tabla.querySelectorAll('input.grade-input').forEach(input => {
+              if (!input.readOnly) input.value = "";
+            });
+            // También poner en 0.0 los promedios de ese corte y actualizar promedio final
+            const rows = tabla.querySelectorAll("tbody tr");
+            rows.forEach((tr, idxEst) => {
+              const promInput = tr.querySelector('input[readonly][id^="prom-c"]');
+              if (promInput) promInput.value = "0.0";
+            });
+            // Actualizar promedios finales
+            const numEstudiantes = tabla.querySelectorAll("tbody tr").length;
+            window.calcularPromedioFinal(numEstudiantes);
+          };
+
+          // Agregar columna extra a un corte (después de Trabajos y Quices)
+          window.agregarColumnaCorte = function(corte) {
+            if (!window._notasEdicionActiva[corte]) return;
+            if (!window._colExtraCount[corte]) window._colExtraCount[corte] = 0;
+            if (window._colExtraCount[corte] >= 2) return; // Máximo 2 extras
+            const tabla = document.getElementById(`tabla-corte-${corte}`);
+            if (!tabla) return;
+            const theadRow = tabla.querySelector("thead tr");
+            const rows = tabla.querySelectorAll("tbody tr");
+            let insertIdx = window._colExtraCount[corte] === 0 ? 2 : 4;
+            // Insertar encabezado editable
+            const th = document.createElement("th");
+            th.textContent = "Extra";
+            th.id = `extra-th-c${corte}-${window._colExtraCount[corte]}`;
+            th.contentEditable = "true";
+            th.className = "editable-th";
+            theadRow.insertBefore(th, theadRow.children[insertIdx]);
+            // Insertar input en cada fila
+            rows.forEach((tr, idx) => {
+              const td = document.createElement("td");
+              td.innerHTML = `<input type="number" class="grade-input extra-col" placeholder="Extra" ${window._notasEdicionActiva[corte] ? "" : "readonly"}>`;
+              tr.insertBefore(td, tr.children[insertIdx]);
+            });
+            window._colExtraCount[corte]++;
+          };
+
+          // Eliminar columna extra de un corte
+          window.eliminarColumnaCorte = function(corte) {
+            if (!window._notasEdicionActiva[corte]) return;
+            if (!window._colExtraCount[corte] || window._colExtraCount[corte] === 0) return;
+            const tabla = document.getElementById(`tabla-corte-${corte}`);
+            if (!tabla) return;
+            const theadRow = tabla.querySelector("thead tr");
+            const rows = tabla.querySelectorAll("tbody tr");
+            let removeIdx = window._colExtraCount[corte] === 2 ? 4 : 2;
+            theadRow.removeChild(theadRow.children[removeIdx]);
+            rows.forEach(tr => {
+              tr.removeChild(tr.children[removeIdx]);
+            });
+            window._colExtraCount[corte]--;
+          };
+
+          // Función para calcular el promedio de corte (incluye extras si presentes)
+          window.calcularPromedioCorte = function(corte, idxEst) {
+            const tabla = document.getElementById(`tabla-corte-${corte}`);
+            if (!tabla) return;
+            const tr = tabla.querySelectorAll("tbody tr")[idxEst];
+            let vals = [];
+            // Trabajos
+            vals.push(parseFloat(tr.children[1].querySelector('input').value) || 0);
+            // Extra después de Trabajos
+            if (window._colExtraCount && window._colExtraCount[corte] && window._colExtraCount[corte] >= 1) {
+              vals.push(parseFloat(tr.children[2].querySelector('input').value) || 0);
+            }
+            // Quices
+            vals.push(parseFloat(tr.children[window._colExtraCount[corte] >= 1 ? 2 + 1 : 2].querySelector('input').value) || 0);
+            // Extra después de Quices
+            if (window._colExtraCount && window._colExtraCount[corte] === 2) {
+              vals.push(parseFloat(tr.children[4].querySelector('input').value) || 0);
+            }
+            // Evaluación Final
+            vals.push(parseFloat(tr.children[window._colExtraCount[corte] === 2 ? 5 : window._colExtraCount[corte] === 1 ? 4 : 3].querySelector('input').value) || 0);
+            // Promedio
+            let prom = 0.0;
+            if (vals.some(v => v !== 0)) {
+              prom = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2);
+            } else {
+              prom = "0.0";
+            }
+            tr.children[tr.children.length - 1].querySelector('input').value = prom;
+          };
+
+          // Calcular promedio final (promedio de los promedios de cada corte)
+          window.calcularPromedioFinal = function(numEstudiantes) {
+            for (let idxEst = 0; idxEst < numEstudiantes; idxEst++) {
+              let suma = 0;
+              let count = 0;
+              for (let corte = 1; corte <= 3; corte++) {
+                const promInput = document.getElementById(`prom-c${corte}-${idxEst}`);
+                if (promInput && promInput.value !== "") {
+                  suma += parseFloat(promInput.value) || 0;
+                  count++;
+                }
+              }
+              const finalInput = document.getElementById(`final-${idxEst}`);
+              finalInput.value = count > 0 ? (suma / count).toFixed(2) : "0.0";
+            }
+          };
+
+          window.regresarSeleccionNotas = function() {
+            document.getElementById("notas-botones-materias").style.display = "block";
+            document.getElementById("notas-materia-contenedor").innerHTML = "";
+          };
+          break;
+
+        case 'horario':
+          let horarioHTML = '<h2>Mi Horario</h2><table class="schedule-table"><thead><tr><th>Asignatura</th><th>Hora Inicio</th><th>Hora Fin</th><th>Aula</th><th>Cant. Estudiantes</th></tr></thead><tbody>';
+          clasesProfesor.forEach(clase => {
+            horarioHTML += `<tr><td>${clase.asignatura} - ${clase.grupo}</td><td>${clase.horaInicio}</td><td>${clase.horaFin}</td><td>${clase.aula}</td><td>${clase.estudiantes.length}</td></tr>`;
+          });
+          horarioHTML += '</tbody></table>';
+          contenedor.innerHTML = horarioHTML;
+          break;
+
+        case 'info-general':
+          contenedor.innerHTML = `
+            <h2>Información General del Profesor</h2>
+            <p><strong>Nombre:</strong> ${profesorInfo.nombre} ${profesorInfo.apellido}</p>
+            <p><strong>Materia que dicta:</strong> ${profesorInfo.materia}</p>
+            <p><strong>Universidad:</strong> ${profesorInfo.universidad}</p>
+            <p><strong>Email:</strong> ${profesorInfo.email}</p>
+            <p><strong>Teléfono:</strong> ${profesorInfo.telefono}</p>
+          `;
+          break;
+
+        default:
+          contenedor.innerHTML = "<p>Seleccione una opción del menú.</p>";
+      }
+    }
+
+    function cerrarSesion() {
+      localStorage.clear();
+      window.location.href = "{{ url_for('index') }}";
+    }
   </script>
 </body>
 </html>
