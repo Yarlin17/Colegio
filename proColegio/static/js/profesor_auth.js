@@ -1,4 +1,5 @@
 function cerrarSesion() {
   localStorage.clear();
-  window.location.href = "{{ url_for('index') }}";
+  // Use the globally defined logout_url
+  window.location.href = window.logout_url;
 }

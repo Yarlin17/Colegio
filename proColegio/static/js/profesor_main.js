@@ -1,8 +1,4 @@
-// Global variables to store extra column details for each corte
-window._colExtraCount = {};
-window._colExtraNames = {};
-
-// Store fetched data globally or pass it around
+// Global variables for professor data and classes
 let currentProfesorId = null;
 let clasesDelProfesor = [];
 let profesorDatosGenerales = {};
@@ -23,12 +19,6 @@ window.onload = async function () {
     displayName = usuarioNombre;
   }
   document.getElementById("usuarioNombre").textContent = displayName;
-
-  // Initialize global variables for extra columns
-  for (let i = 1; i <= 3; i++) {
-    window._colExtraCount[i] = 0;
-    window._colExtraNames[i] = [];
-  }
 
   // --- FETCH INITIAL DATA FROM BACKEND ---
   const emailProfesor = localStorage.getItem("usuarioEmail");
@@ -115,7 +105,15 @@ async function cargarVistaProfesor(seccion) {
 
   if (!currentProfesorId || clasesDelProfesor.length === 0) {
       contenedor.innerHTML = "<p>Cargando información... por favor espere.</p>";
-      await window.onload();
+      // Ensure window.onload completes and data is fetched
+      await new Promise(resolve => {
+          if (document.readyState === 'complete') {
+              resolve();
+          } else {
+              window.addEventListener('load', resolve);
+          }
+      });
+      // Re-check after onload
       if (!currentProfesorId || clasesDelProfesor.length === 0) {
         contenedor.innerHTML = "<p>No se pudo cargar la información del profesor o sus clases. Intente recargar.</p>";
         return;
@@ -124,19 +122,19 @@ async function cargarVistaProfesor(seccion) {
 
   switch (seccion) {
     case 'clases':
-      displayClases(contenedor, clasesDelProfesor); // Llama a la función del nuevo archivo
+      displayClases(contenedor, clasesDelProfesor);
       break;
     case 'registros':
-      displayRegistrosNotas(contenedor, currentProfesorId, clasesDelProfesor); // Llama a la función del nuevo archivo
+      displayRegistrosNotas(contenedor, currentProfesorId, clasesDelProfesor);
       break;
     case 'horario':
-      displayHorario(contenedor, clasesDelProfesor); // Llama a la función del nuevo archivo
+      displayHorario(contenedor, clasesDelProfesor);
       break;
     case 'asistencia':
-      displayAsistencia(contenedor, currentProfesorId, clasesDelProfesor); // Llama a la función del nuevo archivo
+      displayAsistencia(contenedor, currentProfesorId, clasesDelProfesor);
       break;
     case 'info-general':
-      displayInfoGeneral(contenedor, profesorDatosGenerales); // Llama a la función del nuevo archivo
+      displayInfoGeneral(contenedor, profesorDatosGenerales);
       break;
     default:
       contenedor.innerHTML = "<p>Seleccione una opción del menú.</p>";

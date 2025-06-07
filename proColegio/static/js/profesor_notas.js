@@ -1,5 +1,9 @@
 window._notasEdicionActiva = {}; // Moved from `mostrarNotasMateria` for global scope
 
+// Global variables to store extra column details for each corte
+window._colExtraCount = {};
+window._colExtraNames = {};
+
 async function displayRegistrosNotas(contenedor, profesorId, clases) {
   let registrosHTML = '<h2>Registro de Notas</h2>';
   registrosHTML += `<div id="notas-botones-materias" style="margin-bottom:1rem;">`;
@@ -13,6 +17,19 @@ async function displayRegistrosNotas(contenedor, profesorId, clases) {
   registrosHTML += `</div>`;
   registrosHTML += `<div id="notas-materia-contenedor"></div>`;
   contenedor.innerHTML = registrosHTML;
+
+  // Initialize global variables for extra columns if not already
+  for (let i = 1; i <= 3; i++) {
+    if (typeof window._colExtraCount[i] === 'undefined') {
+      window._colExtraCount[i] = 0;
+    }
+    if (typeof window._colExtraNames[i] === 'undefined') {
+      window._colExtraNames[i] = [];
+    }
+    if (typeof window._notasEdicionActiva[i] === 'undefined') {
+        window._notasEdicionActiva[i] = false; // Default to not active
+    }
+  }
 
   // Re-expose global functions for the HTML to call
   window.mostrarNotasMateria = mostrarNotasMateria;
@@ -41,9 +58,19 @@ async function mostrarNotasMateria(claseIdx, profesorId, asignaturaId, grupoId) 
       try {
           const response = await fetch(`/api/notas?profesor_id=${profesorId}&asignatura_id=${asignaturaId}`);
           notasExistentesActualizadas = await response.json();
+          console.log("Notas existentes fetched:", notasExistentesActualizadas);
       } catch (error) {
           console.error("Error fetching updated notes:", error);
           return;
+      }
+
+      // First, reset all inputs to clear previous state before populating
+      for (let corte = 1; corte <= 3; corte++) {
+        const tabla = document.getElementById(`tabla-corte-${corte}`);
+        if (tabla) {
+          tabla.querySelectorAll('input.grade-input[type="number"]').forEach(input => input.value = "");
+          tabla.querySelectorAll('input[readonly][id^="prom-c"]').forEach(input => input.value = "0.0");
+        }
       }
 
       notasExistentesActualizadas.forEach(nota => {
@@ -52,9 +79,16 @@ async function mostrarNotasMateria(claseIdx, profesorId, asignaturaId, grupoId) 
           const inputElement = document.getElementById(inputId);
           if (inputElement) {
               inputElement.value = nota.nota;
-              // Call calculate for existing notes to update averages
-              calcularPromedioCorte(asignaturaId, grupoId, nota.corte, nota.estudiante_id);
+              // No need to call calculate here directly.
+              // We will call calculatePromedioCorte for all students after all notes are populated.
           }
+      });
+
+      // After all individual notes are set, recalculate all corte averages
+      currentClass.estudiantes.forEach((estudiante) => {
+        for (let corte = 1; corte <= 3; corte++) {
+          calcularPromedioCorte(asignaturaId, grupoId, corte, estudiante.id);
+        }
       });
       calcularPromedioFinal(asignaturaId, grupoId, currentClass.estudiantes.length);
   };
@@ -91,11 +125,11 @@ async function mostrarNotasMateria(claseIdx, profesorId, asignaturaId, grupoId) 
         <tr>
           <td>${estudiante.nombre}</td>
           <td><input type="number" class="grade-input" id="${idTrab}" placeholder="Trabajos" min="0" max="5" step="0.1"
-              oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, 'Trabajos', this)" readonly></td>
+              oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, 'Trabajos', this)" ${window._notasEdicionActiva[corte] ? "" : "readonly"}></td>
           <td><input type="number" class="grade-input" id="${idQuiz}" placeholder="Quices" min="0" max="5" step="0.1"
-              oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, 'Quices', this)" readonly></td>
+              oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, 'Quices', this)" ${window._notasEdicionActiva[corte] ? "" : "readonly"}></td>
           <td><input type="number" class="grade-input" id="${idEval}" placeholder="Evaluación Final" min="0" max="5" step="0.1"
-              oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, 'Evaluacion Final', this)" readonly></td>
+              oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, 'Evaluacion Final', this)" ${window._notasEdicionActiva[corte] ? "" : "readonly"}></td>
           <td><input type="text" class="grade-input" id="${idProm}" placeholder="Promedio" readonly style="background:#f5f5f5;"></td>
         </tr>
       `;
@@ -129,15 +163,22 @@ async function mostrarNotasMateria(claseIdx, profesorId, asignaturaId, grupoId) 
     </table>
   `;
   document.getElementById("notas-materia-contenedor").innerHTML = html;
-  window._notasEdicionActiva = {};
+  
+  // Reapply extra columns and their names if they were added previously
   for (let corte = 1; corte <= 3; corte++) {
     if (window._colExtraCount[corte] > 0) {
       for (let i = 0; i < window._colExtraCount[corte]; i++) {
+        // Pass the stored column name when re-adding
         agregarColumnaCorte(corte, asignaturaId, grupoId, profesorId, true, window._colExtraNames[corte][i]);
       }
     }
   }
-  llenarNotasEnTabla();
+  // Enable/disable buttons based on the last known state of _notasEdicionActiva
+  for (let corte = 1; corte <= 3; corte++) {
+      habilitarEdicionNotas(corte, window._notasEdicionActiva[corte]);
+  }
+
+  llenarNotasEnTabla(); // Call this AFTER all HTML is rendered and extra columns are added
 }
 
 function habilitarEdicionNotas(corte, activar) {
@@ -202,39 +243,43 @@ async function eliminarNotasCorte(asignaturaId, grupoId, profesorId, corte) {
 
 function agregarColumnaCorte(corte, asignaturaId, grupoId, profesorId, isReload = false, colName = "Extra") {
   if (!isReload && !window._notasEdicionActiva[corte]) return;
-  if (!window._colExtraCount[corte]) window._colExtraCount[corte] = 0;
-  if (window._colExtraCount[corte] >= 2) return;
+  // Limit to 2 extra columns
+  if (!isReload && window._colExtraCount[corte] >= 2) return;
 
   const tabla = document.getElementById(`tabla-corte-${corte}`);
   if (!tabla) return;
   const theadRow = tabla.querySelector("thead tr");
-  const rows = tabla.querySelectorAll("tbody tr");
   
   let insertIdx;
   let tipoNotaExtra;
-  if (window._colExtraCount[corte] === 0) {
-    insertIdx = 2;
+  if (window._colExtraCount[corte] === 0) { // First extra column
+    insertIdx = 2; // Insert before Quices (index 2 in original table: Estudiante[0], Trabajos[1], Quices[2])
     tipoNotaExtra = 'Extra1';
-  } else {
-    insertIdx = 4;
+  } else if (window._colExtraCount[corte] === 1) { // Second extra column
+    insertIdx = theadRow.children.length - 2; // Insert before Evaluación Final (index 4 in original table, or 5 if Extra1 is present)
     tipoNotaExtra = 'Extra2';
+  } else {
+      return; // Should not happen if limit is working
   }
 
   const th = document.createElement("th");
   th.textContent = colName;
-  th.id = `extra-th-c${corte}-${window._colExtraCount[corte]}`;
+  const colIndexForId = window._colExtraCount[corte]; // Use current count for ID
+  th.id = `extra-th-c${corte}-${colIndexForId}`;
   th.contentEditable = "true";
   th.className = "editable-th";
   th.setAttribute('data-tipo-nota-extra', tipoNotaExtra);
   th.onblur = function() {
       if (!window._colExtraNames[corte]) window._colExtraNames[corte] = [];
-      window._colExtraNames[corte][window._colExtraCount[corte] -1] = this.textContent;
+      // Update the name in the array at the specific index corresponding to this column
+      window._colExtraNames[corte][colIndexForId] = this.textContent;
   };
   theadRow.insertBefore(th, theadRow.children[insertIdx]);
   
+  // Store the column name if it's not a reload
   if (!isReload) {
     if (!window._colExtraNames[corte]) window._colExtraNames[corte] = [];
-    window._colExtraNames[corte].push(colName);
+    window._colExtraNames[corte][colIndexForId] = colName;
   }
 
   const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
@@ -245,14 +290,12 @@ function agregarColumnaCorte(corte, asignaturaId, grupoId, profesorId, isReload 
     td.innerHTML = `<input type="number" class="grade-input extra-col" id="${inputId}" placeholder="${colName}" min="0" max="5" step="0.1"
         oninput="calcularPromedioCorte(${asignaturaId}, ${grupoId}, ${corte}, ${estudiante.id}); guardarNota(${estudiante.id}, ${asignaturaId}, ${profesorId}, ${corte}, '${tipoNotaExtra}', this)"
         ${window._notasEdicionActiva[corte] ? "" : "readonly"}>`;
+    
     const targetRow = Array.from(tabla.querySelectorAll("tbody tr")).find(row => {
-        const firstInput = row.querySelector('input[id^="grade-input-"]');
-        if (firstInput) {
-            const parts = firstInput.id.split('-');
-            return parseInt(parts[3]) === estudiante.id;
-        }
-        return false;
+        const firstCell = row.querySelector('td:first-child');
+        return firstCell && firstCell.textContent.trim() === estudiante.nombre;
     });
+
     if (targetRow) {
       targetRow.insertBefore(td, targetRow.children[insertIdx]);
     }
@@ -269,13 +312,16 @@ async function eliminarColumnaCorte(corte, asignaturaId, grupoId, profesorId) {
   let colExtraIndex;
 
   if (window._colExtraCount[corte] === 2) {
-    removeIdx = 4;
+    // If two extra columns, remove the second one (Extra2), which is at the fixed original index of Evaluación Final if only original columns are counted (index 4 for Eval Final, 3 if only Quices and Trabajos are considered)
+    // After Trabajos (idx 1), Extra1 (idx 2), Quices (idx 3) -> Extra2 will be at idx 4
+    removeIdx = 4; // Assuming 0:Estudiante, 1:Trabajos, 2:Extra1, 3:Quices, 4:Extra2, 5:EvaluaciónFinal, 6:PromedioCorte
     tipoNotaToRemove = 'Extra2';
-    colExtraIndex = 1;
-  } else {
-    removeIdx = 2;
+    colExtraIndex = 1; // Index in _colExtraNames array
+  } else { // window._colExtraCount[corte] === 1
+    // If one extra column, remove the first one (Extra1)
+    removeIdx = 2; // Assuming 0:Estudiante, 1:Trabajos, 2:Extra1, 3:Quices, 4:EvaluaciónFinal, 5:PromedioCorte
     tipoNotaToRemove = 'Extra1';
-    colExtraIndex = 0;
+    colExtraIndex = 0; // Index in _colExtraNames array
   }
 
   if (!confirm(`¿Seguro que desea eliminar la columna "${window._colExtraNames[corte][colExtraIndex]}"? Esto eliminará todas las notas asociadas a ella.`)) return;
@@ -301,14 +347,21 @@ async function eliminarColumnaCorte(corte, asignaturaId, grupoId, profesorId) {
       const theadRow = tabla.querySelector("thead tr");
       const rows = tabla.querySelectorAll("tbody tr");
 
-      theadRow.removeChild(theadRow.children[removeIdx]);
+      // Remove TH from header
+      if (theadRow.children[removeIdx]) {
+        theadRow.removeChild(theadRow.children[removeIdx]);
+      }
+      
+      // Remove TD from all rows
       rows.forEach(tr => {
-          tr.removeChild(tr.children[removeIdx]);
+          if (tr.children[removeIdx]) {
+            tr.removeChild(tr.children[removeIdx]);
+          }
       });
 
       window._colExtraCount[corte]--;
       if (window._colExtraNames[corte]) {
-          window._colExtraNames[corte].splice(colExtraIndex, 1);
+          window._colExtraNames[corte].splice(colExtraIndex, 1); // Remove the name from the array
       }
 
       const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
@@ -327,43 +380,63 @@ async function eliminarColumnaCorte(corte, asignaturaId, grupoId, profesorId) {
 function calcularPromedioCorte(asignaturaId, grupoId, corte, estudianteId) {
   const tabla = document.getElementById(`tabla-corte-${corte}`);
   if (!tabla) return;
-  const tr = Array.from(tabla.querySelectorAll("tbody tr")).find(row => {
-      const inputId = row.querySelector('input[id^="grade-input-"]').id;
-      const parts = inputId.split('-');
-      return parseInt(parts[3]) === estudianteId;
+  
+  const studentRow = Array.from(tabla.querySelectorAll("tbody tr")).find(row => {
+    const firstCell = row.querySelector('td:first-child');
+    // Find the student by checking the first column's text content (student name)
+    // This is more robust than relying on input IDs in the first column
+    const currentClass = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
+    const student = currentClass.estudiantes.find(e => e.id === estudianteId);
+    return firstCell && student && firstCell.textContent.trim() === student.nombre;
   });
-  if (!tr) return;
+
+  if (!studentRow) {
+      console.warn(`No se encontró la fila del estudiante ${estudianteId} en el corte ${corte}`);
+      return;
+  }
 
   let vals = [];
   // Trabajos
-  vals.push(parseFloat(document.getElementById(`grade-input-${asignaturaId}-${grupoId}-${estudianteId}-${corte}-trabajos`).value));
+  const trabajosInput = studentRow.querySelector(`input[id$="-trabajos"]`);
+  if (trabajosInput) vals.push(parseFloat(trabajosInput.value));
   
   // Extra1 if exists
   if (window._colExtraCount[corte] >= 1) {
-    const extra1Input = document.getElementById(`grade-input-${asignaturaId}-${grupoId}-${estudianteId}-${corte}-extra1`);
+    const extra1Input = studentRow.querySelector(`input[id$="-extra1"]`);
     if (extra1Input) vals.push(parseFloat(extra1Input.value));
   }
 
   // Quices
-  vals.push(parseFloat(document.getElementById(`grade-input-${asignaturaId}-${grupoId}-${estudianteId}-${corte}-quices`).value));
+  const quicesInput = studentRow.querySelector(`input[id$="-quices"]`);
+  if (quicesInput) vals.push(parseFloat(quicesInput.value));
 
   // Extra2 if exists
   if (window._colExtraCount[corte] === 2) {
-    const extra2Input = document.getElementById(`grade-input-${asignaturaId}-${grupoId}-${estudianteId}-${corte}-extra2`);
+    const extra2Input = studentRow.querySelector(`input[id$="-extra2"]`);
     if (extra2Input) vals.push(parseFloat(extra2Input.value));
   }
 
   // Evaluación Final
-  vals.push(parseFloat(document.getElementById(`grade-input-${asignaturaId}-${grupoId}-${estudianteId}-${corte}-evaluacionfinal`).value));
+  const evalFinalInput = studentRow.querySelector(`input[id$="-evaluacionfinal"]`);
+  if (evalFinalInput) vals.push(parseFloat(evalFinalInput.value));
   
   let prom = 0.0;
-  const validVals = vals.filter(v => !isNaN(v));
+  // Filter out NaN values, but ensure that if an input exists and is empty, it counts as 0 for calculation, not skipped
+  const validVals = vals.map(v => isNaN(v) ? 0 : v).filter(v => v !== null); // Ensure nulls are also handled if any existed
+
   if (validVals.length > 0) {
+    // Only calculate if there are actual inputs (even if some are 0)
     prom = (validVals.reduce((a, b) => a + b, 0) / validVals.length).toFixed(2);
   } else {
     prom = "0.0";
   }
-  document.getElementById(`prom-c${corte}-${estudianteId}`).value = prom;
+
+  const promCorteInput = document.getElementById(`prom-c${corte}-${estudianteId}`);
+  if (promCorteInput) {
+    promCorteInput.value = prom;
+  } else {
+    console.warn(`Input for prom-c${corte}-${estudianteId} not found.`);
+  }
 
   const currentClassObj = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId);
   calcularPromedioFinal(asignaturaId, grupoId, currentClassObj.estudiantes.length);
@@ -388,7 +461,11 @@ function calcularPromedioFinal(asignaturaId, grupoId, numEstudiantes) {
       }
     }
     const finalInput = document.getElementById(`final-${estudiante.id}`);
-    finalInput.value = count > 0 ? (suma / count).toFixed(2) : "0.0";
+    if (finalInput) {
+      finalInput.value = count > 0 ? (suma / count).toFixed(2) : "0.0";
+    } else {
+        console.warn(`Input for final-${estudiante.id} not found.`);
+    }
   });
 }
 
@@ -398,6 +475,8 @@ async function guardarNota(estudianteId, asignaturaId, profesorId, corte, tipoNo
 
   if (nota < 0 || nota > 5) {
       console.error(`Nota inválida para ${tipoNota}: ${nota}`);
+      // Optionally, revert the input value or show a visual error
+      // inputElement.value = inputElement.defaultValue; // Or a previously valid value
       return;
   }
 
@@ -419,13 +498,23 @@ async function guardarNota(estudianteId, asignaturaId, profesorId, corte, tipoNo
       const result = await response.json();
       if (result.success) {
           console.log(`Nota para ${tipoNota} del estudiante ${estudianteId} en corte ${corte} guardada/actualizada.`);
+          // Optionally, add a small visual feedback for success (e.g., green border)
+          inputElement.style.transition = 'border-color 0.3s ease';
+          inputElement.style.borderColor = '#4CAF50'; // Green for success
+          setTimeout(() => {
+              inputElement.style.borderColor = ''; // Revert after a short delay
+          }, 1000);
       } else {
           console.error("Error al guardar nota:", result.message);
           alert(`Error al guardar la nota: ${result.message}`);
+          inputElement.style.transition = 'border-color 0.3s ease';
+          inputElement.style.borderColor = '#f44336'; // Red for error
       }
   } catch (error) {
       console.error("Error de conexión al guardar nota:", error);
       alert("Error de conexión al guardar la nota.");
+      inputElement.style.transition = 'border-color 0.3s ease';
+      inputElement.style.borderColor = '#f44336'; // Red for error
   }
 }
 

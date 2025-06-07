@@ -40,5 +40,11 @@
   <script src="{{ url_for('static', filename='js/profesor_asistencia.js') }}"></script>
   <script src="{{ url_for('static', filename='js/profesor_info.js') }}"></script>
   <script src="{{ url_for('static', filename='js/profesor_auth.js') }}"></script>
+  
+  <script>
+    // Define the logout URL in the HTML, so Jinja2 processes it
+    // This variable will be globally accessible to profesor_auth.js
+    window.logout_url = "{{ url_for('index') }}";
+  </script>
 </body>
 </html>
