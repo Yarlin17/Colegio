@@ -64,7 +64,7 @@
               const estudiantes = await responseEstudiante.json();
               if (estudiantes.length > 0) {
                   currentEstudianteId = estudiantes[0].estudiante_id;
-                  console.log("Estudiante ID cargado:", currentEstudianteId);
+                  console.log("Estudiante ID cargado:", currentEstudianteId); // ¡IMPORTANTE! Revisa este log
               } else {
                   console.warn("Estudiante no encontrado en la base de datos.");
               }
@@ -258,8 +258,11 @@
             if (!currentEstudianteId) {
                 asistenciaEstudianteHTML += `<p>No se pudo cargar su asistencia. Asegúrese de iniciar sesión como estudiante.</p>`;
             } else {
+                // Aquí es donde obtenemos la asistencia. Asegurémonos de que currentEstudianteId tenga un valor.
+                console.log("Cargando asistencia para estudiante ID:", currentEstudianteId); // ¡NUEVO LOG!
                 const asistenciaResponse = await fetch(`/api/asistencia?estudiante_id=${currentEstudianteId}`);
                 const asistencias = await asistenciaResponse.json();
+                console.log("Datos de asistencia recibidos:", asistencias); // ¡NUEVO LOG!
 
                 if (asistencias.length === 0) {
                     asistenciaEstudianteHTML += '<p>No se encontraron registros de asistencia para usted.</p>';

@@ -1,3 +1,5 @@
+# proColegio/app.py
+
 from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
 from flask_bcrypt import Bcrypt  # Importar Bcrypt
 import psycopg2
@@ -11,7 +13,7 @@ def get_db_connection():
     return psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",  # Cambia por tu usuario de PostgreSQL
-        password="0102",  # Cambia por tu contraseña de PostgreSQL - Consider using environment variables
+        password="1234",  # Cambia por tu contraseña de PostgreSQL - Consider using environment variables
         host="localhost",
         port=5432
     )
@@ -50,7 +52,7 @@ def login():
         cur.execute("SELECT Profesor_ID, NombreProfesor AS nombre, ApellidoProfesor AS apellido, Contrasena FROM Profesores WHERE EmailProfesor=%s", (email,))
         user = cur.fetchone()
         if user:
-            if bcrypt.check_password_hash(user["contrasena"], password):
+            if bcrypt.check_password_hash(user["contrasena"], password): #
                 # Store professor_id in the session/response if needed for later API calls
                 return jsonify({"success": True, "tipo": "profesor", "profesor_id": user["profesor_id"], "nombre": user["nombre"], "apellido": user["apellido"]})
 
@@ -58,7 +60,7 @@ def login():
         cur.execute("SELECT Estudiante_ID, NombreEstudiante AS nombre, ApellidoEstudiante AS apellido, Contrasena FROM Estudiantes WHERE EmailEstudiante=%s", (email,))
         user = cur.fetchone()
         if user:
-            if bcrypt.check_password_hash(user["contrasena"], password):
+            if bcrypt.check_password_hash(user["contrasena"], password): #
                 # Store estudiante_id in the session/response if needed for later API calls
                 return jsonify({"success": True, "tipo": "estudiante", "estudiante_id": user["estudiante_id"], "nombre": user["nombre"], "apellido": user["apellido"]})
 
@@ -91,7 +93,7 @@ def get_profesores():
     rows = cur.fetchall()
     cur.close()
     conn.close()
-    return jsonify([dict(row) for row in rows]) #
+    return jsonify([dict(row) for row in rows])
 
 @app.route('/api/estudiantes', methods=['GET'])
 def get_estudiantes():
@@ -109,7 +111,6 @@ def get_estudiantes():
         query += " AND Estudiante_ID = %s"
         params.append(estudiante_id)
 
-
     cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
@@ -120,7 +121,7 @@ def get_estudiantes():
 def get_aulas():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    aula_id = request.args.get('aula_id')
+    aula_id = request.args.get('aula_id') #
 
     query = "SELECT * FROM Aulas WHERE 1=1"
     params = []
@@ -217,11 +218,11 @@ def get_notas():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    profesor_id = request.args.get('profesor_id')
-    estudiante_id = request.args.get('estudiante_id')
-    asignatura_id = request.args.get('asignatura_id')
-    corte = request.args.get('corte')
-    tipo_nota = request.args.get('tipo_nota')
+    profesor_id = request.args.get('profesor_id') #
+    estudiante_id = request.args.get('estudiante_id') #
+    asignatura_id = request.args.get('asignatura_id') #
+    corte = request.args.get('corte') #
+    tipo_nota = request.args.get('tipo_nota') #
 
     query = """
         SELECT n.nota_id, n.estudiante_id, n.asignatura_id, n.profesor_id, n.corte, n.tipo_nota, n.nota,
@@ -262,12 +263,12 @@ def get_notas():
 @app.route('/api/notas', methods=['POST'])
 def create_or_update_nota():
     data = request.json
-    estudiante_id = data.get('estudiante_id')
-    asignatura_id = data.get('asignatura_id')
-    profesor_id = data.get('profesor_id')
-    corte = data.get('corte')
-    tipo_nota = data.get('tipo_nota')
-    nota = data.get('nota')
+    estudiante_id = data.get('estudiante_id') #
+    asignatura_id = data.get('asignatura_id') #
+    profesor_id = data.get('profesor_id') #
+    corte = data.get('corte') #
+    tipo_nota = data.get('tipo_nota') #
+    nota = data.get('nota') #
 
     if not all([estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nota is not None]):
         return jsonify({"success": False, "message": "Datos incompletos para la nota"}), 400
@@ -333,9 +334,9 @@ def delete_nota(nota_id):
 @app.route('/api/notas/bulk_delete', methods=['POST'])
 def bulk_delete_notas():
     data = request.json
-    profesor_id = data.get('profesor_id')
-    asignatura_id = data.get('asignatura_id')
-    corte = data.get('corte')
+    profesor_id = data.get('profesor_id') #
+    asignatura_id = data.get('asignatura_id') #
+    corte = data.get('corte') #
     tipo_nota = data.get('tipo_nota') # Optional: if deleting specific column notes
 
     conn = None
@@ -367,9 +368,9 @@ def bulk_delete_notas():
 def get_asistencia():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    estudiante_id = request.args.get('estudiante_id')
-    asignatura_id = request.args.get('asignatura_id')
-    fecha = request.args.get('fecha') # YYYY-MM-DD
+    estudiante_id = request.args.get('estudiante_id') #
+    asignatura_id = request.args.get('asignatura_id') #
+    fecha = request.args.get('fecha') #YYYY-MM-DD
     grupo_id = request.args.get('grupo_id') # Filter by group for professor view
 
     query = """
@@ -407,9 +408,9 @@ def get_asistencia():
 @app.route('/api/asistencia', methods=['POST'])
 def record_asistencia():
     data = request.json
-    estudiante_id = data.get('estudiante_id')
-    asignatura_id = data.get('asignatura_id')
-    fecha = data.get('fecha')
+    estudiante_id = data.get('estudiante_id') #
+    asignatura_id = data.get('asignatura_id') #
+    fecha = data.get('fecha') #
     presente = data.get('presente') # Boolean
 
     if not all([estudiante_id, asignatura_id, fecha, presente is not None]):
@@ -459,7 +460,7 @@ def record_asistencia():
 def get_asesorias():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    profesor_id = request.args.get('profesor_id')
+    profesor_id = request.args.get('profesor_id') #
     # You might want to add filters for student_id to show only relevant asesorias for a student
 
     query = """

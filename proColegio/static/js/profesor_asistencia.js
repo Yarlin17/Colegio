@@ -1,4 +1,8 @@
+// proColegio/static/js/profesor_asistencia.js
+
+// Función para mostrar la sección de asistencia en el panel del profesor
 async function displayAsistencia(contenedor, profesorId, clases) {
+  // Construye el HTML inicial con el selector de clase y el input de fecha
   contenedor.innerHTML = `
       <h2>Registro de Asistencia</h2>
       <div style="margin-bottom: 1rem;">
@@ -16,23 +20,39 @@ async function displayAsistencia(contenedor, profesorId, clases) {
       </div>
   `;
 
-  // Re-expose global functions for the HTML to call
+  // Establece la fecha predeterminada del input de fecha a la fecha actual
+  // Y también establece el atributo 'max' para evitar fechas futuras.
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0'); // Los meses son 0-indexados, por eso +1
+  const day = String(today.getDate()).padStart(2, '0');
+  const maxDate = `${year}-${month}-${day}`; // Formato YYYY-MM-DD
+
+  document.getElementById('asistencia-fecha-input').value = maxDate; // Asigna la fecha actual
+  document.getElementById('asistencia-fecha-input').setAttribute('max', maxDate); // Restringe fechas futuras
+
+  // Expone las funciones globalmente para que puedan ser llamadas desde el HTML
   window.mostrarEstudiantesParaAsistencia = mostrarEstudiantesParaAsistencia;
   window.guardarAsistencia = guardarAsistencia;
 }
 
+// Función para cargar la lista de estudiantes de una clase y fecha seleccionadas
 async function mostrarEstudiantesParaAsistencia() {
     const selectElement = document.getElementById('asistencia-clase-select');
     const fechaInput = document.getElementById('asistencia-fecha-input');
-    const [selectedAsignaturaId, selectedGrupoId] = selectElement.value.split('-').map(Number);
-    const selectedFecha = fechaInput.value;
 
+    // Divide el valor del selector para obtener asignatura_id y grupo_id
+    const [selectedAsignaturaId, selectedGrupoId] = selectElement.value.split('-').map(Number);
+    const selectedFecha = fechaInput.value; // Obtiene la fecha en formato YYYY-MM-DD
+
+    // Validación básica de selección
     if (!selectedAsignaturaId || !selectedGrupoId || !selectedFecha) {
         alert("Por favor, seleccione una clase y una fecha.");
         return;
     }
 
-    const claseSeleccionada = clasesDelProfesor.find(c => c.asignatura_id === selectedAsignaturaId && c.grupo_id === selectedGrupoId); // Access global clasesDelProfesor
+    // Busca la clase seleccionada en las clases del profesor (variable global)
+    const claseSeleccionada = clasesDelProfesor.find(c => c.asignatura_id === selectedAsignaturaId && c.grupo_id === selectedGrupoId); //
     if (!claseSeleccionada) {
         document.getElementById('asistencia-estudiantes-contenedor').innerHTML = "<p>Clase no encontrada.</p>";
         return;
@@ -50,8 +70,10 @@ async function mostrarEstudiantesParaAsistencia() {
             <tbody>
     `;
 
+    // Ordena a los estudiantes alfabéticamente por nombre
     const estudiantes = claseSeleccionada.estudiantes.sort((a,b) => a.nombre.localeCompare(b.nombre));
     
+    // Intenta obtener la asistencia existente para esta clase y fecha
     let asistenciaExistente = [];
     try {
         const response = await fetch(`/api/asistencia?asignatura_id=${selectedAsignaturaId}&grupo_id=${selectedGrupoId}&fecha=${selectedFecha}`);
@@ -62,8 +84,10 @@ async function mostrarEstudiantesParaAsistencia() {
         alert("Hubo un error al cargar la asistencia. Por favor, intente de nuevo.");
     }
 
+    // Genera las filas de la tabla para cada estudiante
     estudiantes.forEach(estudiante => {
-        const isPresente = asistenciaExistente.some(a => a.estudiante_id === estudiante.id && a.presente);
+        // Comprueba si el estudiante ya está marcado como presente para esta fecha
+        const isPresente = asistenciaExistente.some(a => a.estudiante_id === estudiante.id && a.presente); //
         estudiantesHTML += `
             <tr>
                 <td>${estudiante.nombre}</td>
@@ -83,21 +107,37 @@ async function mostrarEstudiantesParaAsistencia() {
     document.getElementById('asistencia-estudiantes-contenedor').innerHTML = estudiantesHTML;
 }
 
+// Función para guardar la asistencia de los estudiantes
 async function guardarAsistencia(asignaturaId, grupoId, fecha) {
-    const claseSeleccionada = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId); // Access global clasesDelProfesor
+    const selectedDate = new Date(fecha); // Crea un objeto Date de la fecha seleccionada (YYYY-MM-DD)
+    const today = new Date(); // Obtiene la fecha actual
+
+    // Normaliza ambas fechas a UTC para comparar solo el día, ignorando la hora y las diferencias de zona horaria
+    selectedDate.setUTCHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
+
+    // Validación para evitar guardar asistencia en fechas futuras
+    if (selectedDate.getTime() > today.getTime()) {
+        alert("No se puede registrar asistencia para una fecha futura.");
+        return;
+    }
+
+    // Encuentra la clase seleccionada
+    const claseSeleccionada = clasesDelProfesor.find(c => c.asignatura_id === asignaturaId && c.grupo_id === grupoId); //
     if (!claseSeleccionada) return;
 
     const estudiantes = claseSeleccionada.estudiantes;
-    const promises = [];
+    const promises = []; // Array para almacenar las promesas de las solicitudes fetch
 
+    // Itera sobre cada estudiante y crea una promesa para guardar su asistencia
     estudiantes.forEach(estudiante => {
         const checkbox = document.getElementById(`presente-${estudiante.id}`);
-        const presente = checkbox ? checkbox.checked : false;
+        const presente = checkbox ? checkbox.checked : false; // Determina si está presente o ausente
 
         const data = {
             estudiante_id: estudiante.id,
             asignatura_id: asignaturaId,
-            fecha: fecha,
+            fecha: fecha, // La cadena de fecha YYYY-MM-DD se envía tal cual
             presente: presente
         };
 
@@ -119,8 +159,10 @@ async function guardarAsistencia(asignaturaId, grupoId, fecha) {
     });
 
     try {
+        // Espera a que todas las promesas de guardado se completen
         await Promise.all(promises);
         alert("Asistencia guardada correctamente.");
+        // Vuelve a cargar la lista de estudiantes para reflejar los cambios guardados
         mostrarEstudiantesParaAsistencia();
     } catch (error) {
         console.error("Error al guardar asistencia:", error);
