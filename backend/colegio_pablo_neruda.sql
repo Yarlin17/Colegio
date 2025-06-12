@@ -113,6 +113,7 @@ CREATE TABLE Notas (
     profesor_id INTEGER REFERENCES Profesores(Profesor_ID),
     corte INTEGER NOT NULL,
     tipo_nota VARCHAR(50) NOT NULL,
+    nombrecolumnaextra VARCHAR(100), -- NEW COLUMN ADDED HERE
     nota NUMERIC(4, 2) NOT NULL CHECK (nota >= 0 AND nota <= 5),
     UNIQUE (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota)
 );

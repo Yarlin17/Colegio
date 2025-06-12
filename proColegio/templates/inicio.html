@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Principal - Colegio Pablo Neruda</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
+
 <body>
   <div class="est-sidebar">
     <h2>MENÚ</h2>
@@ -14,7 +16,9 @@
     <button class="est-menu-button" onclick="cargarVista('aulas')">Aulas</button>
     <button class="est-menu-button" onclick="cargarVista('grupos')">Grupos académicos</button>
     <button class="est-menu-button" onclick="cargarVista('horarios')">Generar horarios</button>
-    <button class="est-menu-button" onclick="cargarVista('mi-asistencia')">Mi Asistencia</button> <button class="est-menu-button" onclick="cargarVista('notificaciones')">Notificaciones</button>
+    <button class="est-menu-button" onclick="cargarVista('mi-asistencia')">Mi Asistencia</button>
+    <button class="est-menu-button" onclick="cargarVista('mis-notas')">Mis Notas</button>
+    <button class="est-menu-button" onclick="cargarVista('notificaciones')">Notificaciones</button>
     <button class="est-menu-button est-logout-button" onclick="cerrarSesion()">Cerrar sesión</button>
   </div>
 
@@ -24,7 +28,7 @@
       <span id="usuarioNombre" style="flex:1; text-align:center; font-weight: bold;"></span>
       <div id="fecha" style="flex:1; text-align:right;"></div>
     </header>
-    
+
     <div id="contenido-principal">
       <p>Seleccione una opción del menú para ver la información.</p>
     </div>
@@ -33,7 +37,7 @@
       "Gestiona las asignaturas del colegio."
     </footer>
   </div>
-  
+
   <script>
     let currentEstudianteId = null; // To store the logged-in student's ID
 
@@ -59,18 +63,18 @@
 
       // Fetch current student ID based on email
       if (usuarioEmail) {
-          try {
-              const responseEstudiante = await fetch(`/api/estudiantes?email=${usuarioEmail}`);
-              const estudiantes = await responseEstudiante.json();
-              if (estudiantes.length > 0) {
-                  currentEstudianteId = estudiantes[0].estudiante_id;
-                  console.log("Estudiante ID cargado:", currentEstudianteId); // ¡IMPORTANTE! Revisa este log
-              } else {
-                  console.warn("Estudiante no encontrado en la base de datos.");
-              }
-          } catch (error) {
-              console.error("Error al cargar datos del estudiante:", error);
+        try {
+          const responseEstudiante = await fetch(`/api/estudiantes?email=${usuarioEmail}`);
+          const estudiantes = await responseEstudiante.json();
+          if (estudiantes.length > 0) {
+            currentEstudianteId = estudiantes[0].estudiante_id;
+            console.log("Estudiante ID cargado:", currentEstudianteId);
+          } else {
+            console.warn("Estudiante no encontrado en la base de datos.");
           }
+        } catch (error) {
+          console.error("Error al cargar datos del estudiante:", error);
+        }
       }
     };
 
@@ -83,7 +87,10 @@
         switch (seccion) {
           case 'asignaturas':
             const asignaturasResponse = await fetch('/api/asignaturas');
-            const asignaturas = await asignaturasResponse.json();
+            if (!asignaturasResponse.ok) { // Check if response is successful
+              throw new Error(`HTTP error! status: ${asignaturasResponse.status}`);
+            }
+            const asignaturas = await asignaturasResponse.json(); //
             let asignaturasHTML = '<h2>Asignaturas</h2><ul>';
             if (asignaturas.length === 0) {
               asignaturasHTML += '<p>No se encontraron asignaturas.</p>';
@@ -104,6 +111,9 @@
 
           case 'docentes':
             const docentesResponse = await fetch('/api/profesores');
+            if (!docentesResponse.ok) {
+              throw new Error(`HTTP error! status: ${docentesResponse.status}`);
+            }
             const docentes = await docentesResponse.json();
             let docentesHTML = `
               <h2>Docentes</h2>
@@ -139,7 +149,10 @@
 
           case 'aulas':
             const aulasResponse = await fetch('/api/aulas');
-            const aulas = await aulasResponse.json();
+            if (!aulasResponse.ok) { // Check if response is successful
+              throw new Error(`HTTP error! status: ${aulasResponse.status}`);
+            }
+            const aulas = await aulasResponse.json(); //
             let aulasHTML = `
               <h2>Aulas Disponibles</h2>
               <table class="est-table">
@@ -174,6 +187,9 @@
 
           case 'grupos':
             const gruposResponse = await fetch('/api/grupos');
+            if (!gruposResponse.ok) {
+              throw new Error(`HTTP error! status: ${gruposResponse.status}`);
+            }
             const grupos = await gruposResponse.json();
             let gruposHTML = `<h2>Grupos Académicos</h2>`;
             if (grupos.length === 0) {
@@ -187,9 +203,6 @@
                     <p><strong>Estudiantes Registrados:</strong> (Cargando...)</p> <h4>Asignaturas del Grupo:</h4>
                     <ul>
                 `;
-                // Fetch assignments for this group (if needed, currently not directly linked)
-                // For a more complete view, you'd fetch horarios for this group and list assignments
-                // For now, it's just the group details.
                 gruposHTML += `<li>Información de asignaturas no disponible directamente por grupo aún.</li>`;
                 gruposHTML += `
                     </ul>
@@ -198,21 +211,23 @@
               }
             }
             contenedor.innerHTML = gruposHTML;
-            // You could then, after loading, make additional AJAX calls to populate student counts for each group
             break;
 
           case 'horarios':
             let horariosHTML = `<h2>Mi Horario de Clases</h2>`;
             if (!currentEstudianteId) {
-                horariosHTML += `<p>No se pudo cargar el horario del estudiante. Asegúrese de iniciar sesión como estudiante.</p>`;
+              horariosHTML += `<p>No se pudo cargar el horario del estudiante. Asegúrese de iniciar sesión como estudiante.</p>`;
             } else {
-                const horariosResponse = await fetch(`/api/horarios?estudiante_id=${currentEstudianteId}`);
-                const horarios = await horariosResponse.json();
-                
-                if (horarios.length === 0) {
-                    horariosHTML += '<p>No hay horario disponible para este estudiante.</p>';
-                } else {
-                    horariosHTML += `
+              const horariosResponse = await fetch(`/api/horarios?estudiante_id=${currentEstudianteId}`);
+              if (!horariosResponse.ok) {
+                throw new Error(`HTTP error! status: ${horariosResponse.status}`);
+              }
+              const horarios = await horariosResponse.json();
+
+              if (horarios.length === 0) {
+                horariosHTML += '<p>No hay horario disponible para este estudiante.</p>';
+              } else {
+                horariosHTML += `
                         <table class="est-table">
                             <thead>
                                 <tr>
@@ -227,12 +242,11 @@
                             </thead>
                             <tbody>
                     `;
-                    horarios.forEach(horario => {
-                        // Format times if needed, assuming they come as full timestamps
-                        const horaInicioStr = new Date(horario.horainicio).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
-                        const horaFinStr = new Date(horario.horafin).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'});
+                horarios.forEach(horario => {
+                  const horaInicioStr = new Date(horario.horainicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                  const horaFinStr = new Date(horario.horafin).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 
-                        horariosHTML += `
+                  horariosHTML += `
                             <tr>
                                 <td>${horario.nombreasignatura}</td>
                                 <td>${horario.nombreprofesor} ${horario.apellidoprofesor}</td>
@@ -243,12 +257,12 @@
                                 <td>${horaFinStr}</td>
                             </tr>
                         `;
-                    });
-                    horariosHTML += `
+                });
+                horariosHTML += `
                             </tbody>
                         </table>
                     `;
-                }
+              }
             }
             contenedor.innerHTML = horariosHTML;
             break;
@@ -256,47 +270,141 @@
           case 'mi-asistencia': // NEW CASE FOR STUDENT ATTENDANCE
             let asistenciaEstudianteHTML = `<h2>Mi Registro de Asistencia</h2>`;
             if (!currentEstudianteId) {
-                asistenciaEstudianteHTML += `<p>No se pudo cargar su asistencia. Asegúrese de iniciar sesión como estudiante.</p>`;
+              asistenciaEstudianteHTML += `<p>No se pudo cargar su asistencia. Asegúrese de iniciar sesión como estudiante.</p>`;
             } else {
-                // Aquí es donde obtenemos la asistencia. Asegurémonos de que currentEstudianteId tenga un valor.
-                console.log("Cargando asistencia para estudiante ID:", currentEstudianteId); // ¡NUEVO LOG!
-                const asistenciaResponse = await fetch(`/api/asistencia?estudiante_id=${currentEstudianteId}`);
-                const asistencias = await asistenciaResponse.json();
-                console.log("Datos de asistencia recibidos:", asistencias); // ¡NUEVO LOG!
+              asistenciaEstudianteHTML += `
+                    <div style="margin-bottom: 1rem;">
+                        <label for="student-asistencia-fecha-input">Fecha:</label>
+                        <input type="date" id="student-asistencia-fecha-input" class="grade-input" style="width:auto; display:inline-block; margin-left:0.5rem;">
+                        <button class="menu-button" style="margin-left:1rem;" onclick="loadStudentAttendanceByDate()">Filtrar por Fecha</button>
+                    </div>
+                    <div id="student-attendance-table-container">
+                        <p>Seleccione una fecha o cargue la asistencia completa.</p>
+                    </div>
+                `;
+            }
+            contenedor.innerHTML = asistenciaEstudianteHTML;
 
-                if (asistencias.length === 0) {
-                    asistenciaEstudianteHTML += '<p>No se encontraron registros de asistencia para usted.</p>';
-                } else {
-                    asistenciaEstudianteHTML += `
+            // Set max date for the new input
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const maxDate = `${year}-${month}-${day}`;
+            document.getElementById('student-asistencia-fecha-input').value = maxDate; // Default to today
+            document.getElementById('student-asistencia-fecha-input').setAttribute('max', maxDate);
+
+            // Call a new function to load attendance, potentially with the default date
+            loadStudentAttendanceByDate(true); // Load initially with default date
+            break;
+
+          case 'mis-notas':
+            let notasEstudianteHTML = `<h2>Mis Notas</h2>`;
+            if (!currentEstudianteId) {
+              notasEstudianteHTML += `<p>No se pudo cargar sus notas. Asegúrese de iniciar sesión como estudiante.</p>`;
+            } else {
+              const notasResponse = await fetch(`/api/notas?estudiante_id=${currentEstudianteId}`);
+              if (!notasResponse.ok) {
+                throw new Error(`HTTP error! status: ${notasResponse.status}`);
+              }
+              const notas = await notasResponse.json();
+
+              if (notas.length === 0) {
+                notasEstudianteHTML += '<p>No se encontraron notas registradas para usted.</p>';
+              } else {
+                const notasPorAsignatura = {};
+                notas.forEach(nota => {
+                  if (!notasPorAsignatura[nota.nombreasignatura]) {
+                    notasPorAsignatura[nota.nombreasignatura] = {};
+                  }
+                  if (!notasPorAsignatura[nota.nombreasignatura][nota.corte]) {
+                    notasPorAsignatura[nota.nombreasignatura][nota.corte] = [];
+                  }
+                  notasPorAsignatura[nota.nombreasignatura][nota.corte].push(nota);
+                });
+
+                for (const asignaturaNombre in notasPorAsignatura) {
+                  notasEstudianteHTML += `<h3>Asignatura: ${asignaturaNombre}</h3>`;
+                  for (let corte = 1; corte <= 3; corte++) {
+                    const notasCorte = notasPorAsignatura[asignaturaNombre][corte] || [];
+                    if (notasCorte.length > 0) {
+                      notasEstudianteHTML += `<h4>Corte ${corte}</h4>`;
+                      notasEstudianteHTML += `
+                                    <table class="est-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tipo de Nota</th>
+                                                <th>Nota</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                `;
+                      let sumNotas = 0;
+                      let countNotas = 0;
+                      notasCorte.forEach(nota => {
+                        let displayTipoNota = nota.tipo_nota;
+                        if ((nota.tipo_nota === 'Extra1' || nota.tipo_nota === 'Extra2') && nota.nombrecolumnaextra) {
+                          displayTipoNota = nota.nombrecolumnaextra;
+                        }
+                        notasEstudianteHTML += `
+                                        <tr>
+                                            <td>${displayTipoNota}</td>
+                                            <td>${nota.nota.toFixed(2)}</td>
+                                        </tr>
+                                    `;
+                        sumNotas += nota.nota;
+                        countNotas++;
+                      });
+                      const promedioCorte = countNotas > 0 ? (sumNotas / countNotas).toFixed(2) : 'N/A';
+                      notasEstudianteHTML += `
+                                            <tr>
+                                                <td><strong>Promedio del Corte</strong></td>
+                                                <td><strong>${promedioCorte}</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                `;
+                    }
+                  }
+                }
+
+                notasEstudianteHTML += `<h3>Promedios Finales por Asignatura</h3>`;
+                notasEstudianteHTML += `
                         <table class="est-table">
                             <thead>
                                 <tr>
                                     <th>Asignatura</th>
-                                    <th>Fecha</th>
-                                    <th>Estado</th>
+                                    <th>Promedio Final</th>
                                 </tr>
                             </thead>
                             <tbody>
                     `;
-                    asistencias.forEach(asistencia => {
-                        const estado = asistencia.presente ? 'Presente' : 'Ausente';
-                        const estadoClase = asistencia.presente ? 'presente-clase' : 'ausente-clase'; // For potential styling
-
-                        asistenciaEstudianteHTML += `
+                for (const asignaturaNombre in notasPorAsignatura) {
+                  let totalSumPromediosCortes = 0;
+                  let totalCountCortes = 0;
+                  for (let corte = 1; corte <= 3; corte++) {
+                    const notasCorte = notasPorAsignatura[asignaturaNombre][corte] || [];
+                    if (notasCorte.length > 0) {
+                      const sumNotasCorte = notasCorte.reduce((sum, nota) => sum + nota.nota, 0);
+                      totalSumPromediosCortes += (sumNotasCorte / notasCorte.length);
+                      totalCountCortes++;
+                    }
+                  }
+                  const promedioFinalAsignatura = totalCountCortes > 0 ? (totalSumPromediosCortes / totalCountCortes).toFixed(2) : 'N/A';
+                  notasEstudianteHTML += `
                             <tr>
-                                <td>${asistencia.nombreasignatura}</td>
-                                <td>${new Date(asistencia.fecha).toLocaleDateString('es-ES')}</td>
-                                <td class="${estadoClase}">${estado}</td>
+                                <td>${asignaturaNombre}</td>
+                                <td>${promedioFinalAsignatura}</td>
                             </tr>
                         `;
-                    });
-                    asistenciaEstudianteHTML += `
+                }
+                notasEstudianteHTML += `
                             </tbody>
                         </table>
                     `;
-                }
+              }
             }
-            contenedor.innerHTML = asistenciaEstudianteHTML;
+            contenedor.innerHTML = notasEstudianteHTML;
             break;
 
           case 'notificaciones':
@@ -306,7 +414,6 @@
                 <li>⚠ Cambio en horario de Física - Aula 302</li>
                 <li>⚠ Nueva asignación: Matemáticas - Aula 105</li>
               </ul>`;
-            // In a real app, fetch from a /api/notificaciones endpoint
             break;
 
           default:
@@ -323,6 +430,81 @@
       localStorage.clear();
       window.location.href = "{{ url_for('index') }}";
     }
+
+     async function loadStudentAttendanceByDate(initialLoad = false) {
+      const fechaInput = document.getElementById('student-asistencia-fecha-input');
+      const selectedFecha = fechaInput ? fechaInput.value : '';
+      const attendanceContainer = document.getElementById('student-attendance-table-container');
+      if (!attendanceContainer) return; // Ensure container exists
+      attendanceContainer.innerHTML = "<p>Cargando asistencia...</p>";
+      if (!currentEstudianteId) {
+        attendanceContainer.innerHTML = `<p>No se pudo cargar su asistencia. Asegúrese de iniciar sesión como estudiante.</p>`;
+        return;
+      }
+      let fetchUrl = `/api/asistencia?estudiante_id=${currentEstudianteId}`;
+      if (selectedFecha && selectedFecha !== '') {
+        fetchUrl += `&fecha=${selectedFecha}`;
+      }
+      try {
+        console.log("Fetching student attendance from URL:", fetchUrl);
+        const asistenciaResponse = await fetch(fetchUrl);
+        const asistencias = await asistenciaResponse.json();
+        console.log("Student attendance data received:", asistencias);
+        let tableHTML = '';
+        if (asistencias.length === 0) {
+          tableHTML += '<p>No se encontraron registros de asistencia para usted en la fecha seleccionada.</p>';
+        } else {
+          tableHTML += `
+            <table class="est-table">
+                <thead>
+                    <tr>
+                        <th>Asignatura</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+          `;
+          asistencias.forEach(asistencia => {
+            const estado = asistencia.presente ? 'Presente' : 'Ausente';
+            const estadoClase = asistencia.presente ? 'presente-clase' : 'ausente-clase';
+                        tableHTML += `
+                <tr>
+                    <td>${asistencia.nombreasignatura || 'N/A'}</td> <td>
+                      ${
+                        (() => {
+                          if (!asistencia.fecha) { // Check for null/undefined date
+                            return 'N/A';
+                          }
+                          const dateObj = new Date(asistencia.fecha); // Pass the date string directly
+
+                          if (isNaN(dateObj.getTime())) { // Check if the date object is valid
+                            // This console.log is very important if it still fails here
+                            console.error('ERROR: Date parsing failed for:', asistencia.fecha);
+                            return 'Fecha Inválida';
+                          }
+
+                          // Format the date to DD/MM/YYYY
+                          return dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                        })()
+                      }
+                    </td>
+                    <td class="${estadoClase}">${estado || 'N/A'}</td> </tr>
+            `;
+
+          });
+          tableHTML += `
+                </tbody>
+            </table>
+          `;
+        }
+        attendanceContainer.innerHTML = tableHTML;
+      } catch (error) {
+        console.error("Error al cargar asistencia del estudiante:", error);
+        attendanceContainer.innerHTML = "<p>Hubo un error al cargar su asistencia. Por favor, intente de nuevo.</p>";
+      }
+    }
   </script>
 </body>
+
 </html>
