@@ -1,125 +1,96 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inicio de sesión - Colegio Pablo Neruda</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/login-index.css') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio de Sesión - Colegio Pablo Neruda</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
-<body class="login-index-bg">
-  <div class="login-index-navbar">
-    <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo del Colegio Pablo Neruda">
-    INSTITUCIÓN EDUCATIVA PABLO NERUDA
-  </div>
+<body class="bg-light">
 
-  <div id="login-index-errorAlert">
-    <strong>ERROR</strong><br>
-    <span>"Los datos ingresados están mal, por favor vuelve a intentarlo."<br><span style="font-size:0.95rem;">ERROR #777 </span></span>
-    <button onclick="cerrarAlerta()">Cerrar</button>
-  </div>
+    <div id="login-error-alert" class="alert alert-danger d-none position-fixed top-0 start-50 translate-middle-x p-3 m-3" style="z-index: 1050;">
+        <strong>Error de Autenticación:</strong> Los datos ingresados son incorrectos.
+    </div>
 
-  <main class="login-index-main">
-    <section class="login-index-card">
-      <h1>Colegio Pablo Neruda</h1>
-      <div id="fecha" class="login-index-fecha"></div>
-      <h2>INICIAR SESIÓN</h2>
-      <input type="text" name="usuario" id="emailInput" placeholder="USUARIO O EMAIL">
-      <input type="password" name="contrasena" id="passwordInput" placeholder="CONTRASEÑA">
-      <p>¿Olvidaste la contraseña?</p>
-      <button onclick="handleLogin()">INGRESAR</button>
-      <div class="login-index-quote">"Formamos ciudadanos con calidad, respeto y tolerancia"</div>
-    </section>
-  </main>
+    <div class="container d-flex flex-column justify-content-center min-vh-100">
+        <header class="text-center mb-5">
+            <img src="{{ url_for('static', filename='img/logo.jpeg') }}" alt="Logo Colegio" style="width: 90px; border-radius: 50%;" class="shadow-sm mb-3">
+            <h1 class="fw-bold h2">Institución Educativa Pablo Neruda</h1>
+            <p id="fecha" class="text-muted"></p>
+        </header>
 
-  <footer class="login-index-footer">
-    <p><strong>📘 Colegio Pablo Neruda - Cúcuta</strong></p>
-    <p>📍 Calle 12 #5-78, Barrio Centro, Cúcuta, Norte de Santander</p>
-    <p>📞 (7) 582 3421 | 📱 WhatsApp: +57 313 456 7890</p>
-    <p>✉️ contacto@colegiopabloneruda.edu.co</p>
-    <p>
-      🔗 
-      <a href="https://www.facebook.com/ColegioPabloNerudaCucuta" target="_blank">Facebook</a> |
-      <a href="https://www.instagram.com/ColegioPabloNerudaCucuta" target="_blank">Instagram</a> |
-      <a href="https://wa.me/573134567890" target="_blank">WhatsApp</a>
-    </p>
-  </footer>
+        <main class="row justify-content-center">
+            <div class="col-md-6 col-lg-5 col-xl-4">
+                <div class="card border-0 shadow-lg">
+                    <div class="card-body p-4 p-md-5">
+                        <h2 class="card-title text-center fw-bold fs-4 mb-4">Iniciar Sesión</h2>
+                        <div class="mb-3">
+                            <label for="emailInput" class="form-label">Usuario o Email</label>
+                            <input type="text" class="form-control form-control-lg" id="emailInput" placeholder="su.email@ejemplo.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="passwordInput" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control form-control-lg" id="passwordInput" placeholder="••••••••">
+                        </div>
+                        <div class="d-grid mt-4">
+                            <button class="btn btn-primary btn-lg fw-semibold" onclick="handleLogin()">Ingresar</button>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="#" class="text-muted small">¿Olvidaste la contraseña?</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
 
-  <script>
-    // Actualizar fecha al cargar
+<script>
     window.onload = function () {
       const fechaElemento = document.getElementById("fecha");
       const hoy = new Date();
-      const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-      fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
+      fechaElemento.textContent = hoy.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-      // Permitir login con Enter solo si ambos campos tienen datos
-      document.getElementById("emailInput").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") {
-          const email = document.getElementById("emailInput").value.trim();
-          const password = document.getElementById("passwordInput").value.trim();
-          if (email !== "" && password !== "") {
-            handleLogin();
-          }
-        }
-      });
-      document.getElementById("passwordInput").addEventListener("keydown", function(e) {
-        if (e.key === "Enter") {
-          const email = document.getElementById("emailInput").value.trim();
-          const password = document.getElementById("passwordInput").value.trim();
-          if (email !== "" && password !== "") {
-            handleLogin();
-          }
-        }
+      document.querySelectorAll("#emailInput, #passwordInput").forEach(input => {
+        input.addEventListener("keydown", e => e.key === "Enter" && handleLogin());
       });
     };
 
-    // Función para mostrar alerta de error
     function mostrarAlertaError() {
-      document.getElementById("login-index-errorAlert").style.display = "block";
+      const alert = document.getElementById("login-error-alert");
+      alert.classList.remove("d-none");
+      setTimeout(() => alert.classList.add("d-none"), 4000);
     }
 
-    // Función para cerrar alerta de error
-    function cerrarAlerta() {
-      document.getElementById("login-index-errorAlert").style.display = "none";
-    }
-
-    // Nueva función para manejar el inicio de sesión con el backend
     async function handleLogin() {
       const email = document.getElementById("emailInput").value.trim();
       const password = document.getElementById("passwordInput").value.trim();
-
-      if (email === "" || password === "") {
-        mostrarAlertaError();
-        return;
-      }
+      if (!email || !password) return mostrarAlertaError();
 
       try {
         const response = await fetch("{{ url_for('login') }}", {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ email: email, password: password })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
         });
-
         const result = await response.json();
-
-        if (result.success) {
+        if (response.ok && result.success) {
           localStorage.setItem("usuarioNombre", result.nombre);
           localStorage.setItem("usuarioApellido", result.apellido);
-          localStorage.setItem("usuarioEmail", email);  // Store the email here!
-          if (result.tipo === "profesor") {
-            window.location.href = "{{ url_for('profesor') }}";
-          } else {
-            window.location.href = "{{ url_for('inicio') }}";
-          }
+          localStorage.setItem("usuarioEmail", email);
+          window.location.href = result.tipo === "profesor" ? "{{ url_for('profesor') }}" : "{{ url_for('inicio') }}";
         } else {
           mostrarAlertaError();
         }
       } catch (error) {
+        console.error('Error en el login:', error);
         mostrarAlertaError();
       }
     }
-  </script>
+</script>
 </body>
 </html>

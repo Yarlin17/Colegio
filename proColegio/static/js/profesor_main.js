@@ -1,142 +1,159 @@
-// Global variables for professor data and classes
 let currentProfesorId = null;
 let clasesDelProfesor = [];
 let profesorDatosGenerales = {};
 
-window.onload = async function () {
-  const fechaElemento = document.getElementById("fecha");
-  const hoy = new Date();
-  const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  fechaElemento.textContent = hoy.toLocaleDateString('es-ES', opciones);
-
+window.onload = async function() {
   const usuarioNombre = localStorage.getItem("usuarioNombre");
   const usuarioApellido = localStorage.getItem("usuarioApellido");
-  let displayName = "Profesor";
+  const emailProfesor = localStorage.getItem("usuarioEmail");
 
-  if (usuarioNombre && usuarioApellido) {
-    displayName = `${usuarioNombre} ${usuarioApellido}`;
-  } else if (usuarioNombre) {
-    displayName = usuarioNombre;
-  }
+  let displayName = "Profesor";
+  if (usuarioNombre && usuarioApellido) displayName = `${usuarioNombre} ${usuarioApellido}`;
+  else if (usuarioNombre) displayName = usuarioNombre;
   document.getElementById("usuarioNombre").textContent = displayName;
 
-  // --- FETCH INITIAL DATA FROM BACKEND ---
-  const emailProfesor = localStorage.getItem("usuarioEmail");
-  
-  if (emailProfesor) {
-      try {
-          const responseProfesor = await fetch(`/api/profesores?email=${emailProfesor}`);
-          const profesores = await responseProfesor.json();
-          if (profesores.length > 0) {
-              profesorDatosGenerales = profesores[0];
-              currentProfesorId = profesorDatosGenerales.profesor_id;
-              console.log("Datos del profesor cargados:", profesorDatosGenerales);
-          } else {
-              console.warn("Profesor no encontrado en la base de datos.");
-              currentProfesorId = 2; // Default for testing
-          }
-      } catch (error) {
-          console.error("Error al cargar datos del profesor:", error);
-          currentProfesorId = 2; // Default for testing
-      }
-  } else {
-      currentProfesorId = 2; // Default if no email in localStorage
-      console.warn("No hay email de usuario en localStorage. Usando ID de profesor predeterminado.");
+  if (!emailProfesor) {
+    document.getElementById("contenido-principal").innerHTML = `<div class="alert alert-danger">Error: No se encontró el email del profesor.</div>`;
+    return;
   }
 
-  // Fetch classes taught by this professor
-  if (currentProfesorId) {
-      try {
-          const responseClases = await fetch(`/api/horarios?profesor_id=${currentProfesorId}`);
-          const horarios = await responseClases.json();
-          console.log("Horarios fetched:", horarios);
+  try {
+    const profesorResponse = await fetch(`/api/profesores?email=${emailProfesor}`);
+    const profesores = await profesorResponse.json();
+    if (profesores.length > 0) {
+      profesorDatosGenerales = profesores[0];
+      currentProfesorId = profesorDatosGenerales.profesor_id;
 
-          // Process horarios to form 'clasesDelProfesor' structure
-          const processedClases = {};
-          for (const horario of horarios) {
-              const key = `${horario.asignatura_id}-${horario.grupo_id}`;
-              if (!processedClases[key]) {
-                  const [asignaturaResp, grupoResp] = await Promise.all([
-                      fetch(`/api/asignaturas?asignatura_id=${horario.asignatura_id}`).then(res => res.json()),
-                      fetch(`/api/grupos?grupo_id=${horario.grupo_id}`).then(res => res.json())
-                  ]);
-                  const asignatura = asignaturaResp[0];
-                  const grupo = grupoResp[0];
-
-                  const estudiantesResp = await fetch(`/api/estudiantes?grupo_id=${horario.grupo_id}`);
-                  const estudiantes = await estudiantesResp.json();
-                  const formattedEstudiantes = estudiantes.map(e => ({
-                      id: e.estudiante_id,
-                      nombre: `${e.nombreestudiante} ${e.apellidoestudiante}`
-                  }));
-
-                  processedClases[key] = {
-                      asignatura_id: horario.asignatura_id,
-                      asignatura: asignatura ? asignatura.nombreasignatura : 'Desconocida',
-                      grupo_id: horario.grupo_id,
-                      grupo: grupo ? grupo.nombregrupo : 'Desconocido',
-                      horario: [],
-                      horaInicio: horario.horainicio ? new Date(horario.horainicio).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '',
-                      horaFin: horario.horafin ? new Date(horario.horafin).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '',
-                      aula: horario.aula_id ? (await fetch(`/api/aulas?aula_id=${horario.aula_id}`).then(res => res.json()))[0].nombreaula : 'Desconocida',
-                      estudiantes: formattedEstudiantes
-                  };
-              }
-              const horaInicioStr = horario.horainicio ? new Date(horario.horainicio).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '';
-              const horaFinStr = horario.horafin ? new Date(horario.horafin).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}) : '';
-              processedClases[key].horario.push(`${horario.diasemana} ${horaInicioStr} - ${horaFinStr}`);
-          }
-
-          clasesDelProfesor = Object.values(processedClases).map(clase => {
-              clase.horario = clase.horario.join(', ');
-              return clase;
-          });
-          console.log("Clases del profesor cargadas:", clasesDelProfesor);
-
-      } catch (error) {
-          console.error("Error al cargar clases del profesor:", error);
-          alert("Hubo un error al cargar las clases. Por favor, recargue la página.");
-      }
+      const horariosResponse = await fetch(`/api/horarios?profesor_id=${currentProfesorId}`);
+      const horarios = await horariosResponse.json();
+      await procesarClases(horarios);
+      
+      cargarVistaProfesor('dashboard');
+    } else {
+      throw new Error("Profesor no encontrado.");
+    }
+  } catch (error) {
+    console.error("Error al cargar datos iniciales:", error);
+    document.getElementById("contenido-principal").innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
   }
 };
 
+async function procesarClases(horarios) {
+    const processedClases = {};
+    for (const horario of horarios) {
+        const key = `${horario.asignatura_id}-${horario.grupo_id}`;
+        if (!processedClases[key]) {
+             const estudiantesResp = await fetch(`/api/estudiantes?grupo_id=${horario.grupo_id}`);
+             processedClases[key] = {
+                asignatura_id: horario.asignatura_id, asignatura: horario.nombreasignatura,
+                grupo_id: horario.grupo_id, grupo: horario.nombregrupo,
+                horario: [], aula: horario.nombreaula,
+                estudiantes: (await estudiantesResp.json()).map(e => ({ id: e.estudiante_id, nombre: `${e.nombreestudiante} ${e.apellidoestudiante}` }))
+            };
+        }
+        processedClases[key].horario.push({ 
+            dia: horario.diasemana, 
+            inicio: new Date(horario.horainicio).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'}),
+            fin: new Date(horario.horafin).toLocaleTimeString('es-ES', {hour: '2-digit', minute: '2-digit'})
+        });
+    }
+    clasesDelProfesor = Object.values(processedClases);
+}
+
+async function displayDashboard(contenedor) {
+    contenedor.innerHTML = `<div class="d-flex justify-content-center mt-5"><div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div></div>`;
+    const today = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
+    const clasesHoy = clasesDelProfesor.filter(c => c.horario.some(h => h.dia.toLowerCase() === today.toLowerCase()));
+    
+    // KPI Data
+    const asistenciaResponse = await fetch(`/api/asistencia?profesor_id=${currentProfesorId}`);
+    const allAsistencia = await asistenciaResponse.json();
+    let averageAttendance = allAsistencia.length > 0 ? Math.round(allAsistencia.filter(a => a.presente).length / allAsistencia.length * 100) + '%' : 'N/A';
+    
+    const kpiData = [
+        { title: 'Clases Hoy', value: clasesHoy.length, icon: 'bi-journal-bookmark-fill', color: 'text-primary', bg: 'bg-primary-subtle' },
+        { title: 'Asistencia Prom.', value: averageAttendance, icon: 'bi-check-circle-fill', color: 'text-success', bg: 'bg-success-subtle' },
+        { title: 'Grupos Asignados', value: [...new Set(clasesDelProfesor.map(c => c.grupo))].length, icon: 'bi-people-fill', color: 'text-warning', bg: 'bg-warning-subtle' },
+        { title: 'Asignaturas', value: [...new Set(clasesDelProfesor.map(c => c.asignatura))].length, icon: 'bi-book-half', color: 'text-danger', bg: 'bg-danger-subtle' }
+    ];
+
+    const kpiHTML = kpiData.map(kpi => `
+        <div class="col">
+            <div class="card kpi-card border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="kpi-icon ${kpi.bg} ${kpi.color}"><i class="bi ${kpi.icon}"></i></div>
+                    <div class="kpi-text">
+                        <h3>${kpi.value}</h3><p class="text-muted mb-0">${kpi.title}</p>
+                    </div>
+                </div>
+            </div>
+        </div>`).join('');
+
+    const clasesHoyHTML = clasesHoy.length > 0 ? clasesHoy.flatMap(c => c.horario
+        .filter(h => h.dia.toLowerCase() === today.toLowerCase())
+        .map(h => `
+            <div class="class-list-item mb-3 pb-3 border-bottom">
+                <div class="class-time">${h.inicio}</div>
+                <div class="flex-grow-1 ms-3">
+                    <h6 class="mb-0 fw-bold">${c.asignatura}</h6>
+                    <small class="text-muted">${c.aula} - ${c.grupo}</small>
+                </div>
+                <button class="btn btn-outline-primary btn-sm" onclick="cargarVistaProfesor('asistencia')">Asistencia</button>
+            </div>`
+        )).join('') : '<p class="text-muted mt-3">No tiene clases programadas para hoy.</p>';
+    
+    const dashboardHTML = `
+        <div class="mb-4">
+            <h3 class="fw-bold">Bienvenido, ${profesorDatosGenerales.nombreprofesor}</h3>
+            <p class="text-muted">Aquí tiene un resumen de su actividad reciente.</p>
+        </div>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">${kpiHTML}</div>
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div class="card h-100 border-0 shadow-sm"><div class="card-body"><h5 class="card-title fw-bold">Próximas Clases del Día</h5>${clasesHoyHTML}</div></div>
+            </div>
+            <div class="col-lg-5">
+                <div class="card h-100 border-0 shadow-sm"><div class="card-body"><h5 class="card-title fw-bold">Notificaciones</h5>
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex align-items-center px-0"><i class="bi bi-people-fill fs-4 text-danger me-3"></i><div><strong>Reunión de departamento</strong> mañana a las 9:00 <br><small class="text-muted">Hace 1 hora</small></div></div>
+                        <div class="list-group-item d-flex align-items-center px-0"><i class="bi bi-check2-circle fs-4 text-success me-3"></i><div><strong>Calificaciones</strong> enviadas correctamente<br><small class="text-muted">Ayer</small></div></div>
+                    </div>
+                </div></div>
+            </div>
+        </div>`;
+    contenedor.innerHTML = dashboardHTML;
+}
+
 async function cargarVistaProfesor(seccion) {
   const contenedor = document.getElementById("contenido-principal");
-
-  if (!currentProfesorId || clasesDelProfesor.length === 0) {
-      contenedor.innerHTML = "<p>Cargando información... por favor espere.</p>";
-      // Ensure window.onload completes and data is fetched
-      await new Promise(resolve => {
-          if (document.readyState === 'complete') {
-              resolve();
-          } else {
-              window.addEventListener('load', resolve);
-          }
-      });
-      // Re-check after onload
-      if (!currentProfesorId || clasesDelProfesor.length === 0) {
-        contenedor.innerHTML = "<p>No se pudo cargar la información del profesor o sus clases. Intente recargar.</p>";
-        return;
-      }
+  contenedor.innerHTML = `<div class="d-flex justify-content-center mt-5"><div class="spinner-border" role="status"><span class="visually-hidden">Cargando...</span></div></div>`;
+  
+  document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
+  const activeLink = document.querySelector(`.sidebar .nav-link[onclick="cargarVistaProfesor('${seccion}')"]`);
+  if (activeLink) {
+      activeLink.classList.add('active');
+      document.getElementById('header-title').textContent = activeLink.textContent.trim();
   }
 
+  const backButton = `<button class="btn btn-secondary mb-3" onclick="cargarVistaProfesor('dashboard')"><i class="bi bi-arrow-left me-2"></i>Volver al Panel</button>`;
+
   switch (seccion) {
+    case 'dashboard':
+      await displayDashboard(contenedor);
+      break;
     case 'clases':
-      displayClases(contenedor, clasesDelProfesor);
+      displayClases(contenedor, clasesDelProfesor, backButton);
       break;
     case 'registros':
-      displayRegistrosNotas(contenedor, currentProfesorId, clasesDelProfesor);
+      displayRegistrosNotas(contenedor, currentProfesorId, clasesDelProfesor, backButton);
       break;
     case 'horario':
-      displayHorario(contenedor, clasesDelProfesor);
+      displayHorario(contenedor, clasesDelProfesor, backButton);
       break;
     case 'asistencia':
-      displayAsistencia(contenedor, currentProfesorId, clasesDelProfesor);
-      break;
-    case 'info-general':
-      displayInfoGeneral(contenedor, profesorDatosGenerales);
+      displayAsistencia(contenedor, currentProfesorId, clasesDelProfesor, backButton);
       break;
     default:
-      contenedor.innerHTML = "<p>Seleccione una opción del menú.</p>";
+      contenedor.innerHTML = `<div class="alert alert-warning">Sección no encontrada.</div>`;
   }
 }
