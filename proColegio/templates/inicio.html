@@ -476,16 +476,21 @@
                           if (!asistencia.fecha) { // Check for null/undefined date
                             return 'N/A';
                           }
-                          const dateObj = new Date(asistencia.fecha); // Pass the date string directly
+                          // CORRECCIÓN: Crear el objeto Date a partir de la cadena YYYY-MM-DD
+                          const dateObj = new Date(asistencia.fecha);
 
-                          if (isNaN(dateObj.getTime())) { // Check if the date object is valid
-                            // This console.log is very important if it still fails here
+                          if (isNaN(dateObj.getTime())) { 
                             console.error('ERROR: Date parsing failed for:', asistencia.fecha);
                             return 'Fecha Inválida';
                           }
 
-                          // Format the date to DD/MM/YYYY
-                          return dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                          // CORRECCIÓN: Formatear la fecha usando la zona horaria UTC para evitar el desfase.
+                          return dateObj.toLocaleDateString('es-ES', { 
+                            day: '2-digit', 
+                            month: '2-digit', 
+                            year: 'numeric',
+                            timeZone: 'UTC' // Esta es la clave de la corrección
+                          });
                         })()
                       }
                     </td>
