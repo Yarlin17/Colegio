@@ -26,10 +26,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Drop Tables (using the function, in dependency order)
-SELECT drop_table_if_exists('asistencia'); -- New: drop attendance table first
-SELECT drop_table_if_exists('notas');      -- Drop notes table next
+SELECT drop_table_if_exists('asistencia'); 
+SELECT drop_table_if_exists('notas');     
 SELECT drop_table_if_exists('horarios');
-SELECT drop_table_if_exists('asesorias');  -- New: drop asesorias table
+SELECT drop_table_if_exists('asesorias'); 
 SELECT drop_table_if_exists('estudiantes');
 SELECT drop_table_if_exists('grupos');
 SELECT drop_table_if_exists('asignaturas');
@@ -44,9 +44,9 @@ SELECT drop_sequence_if_exists('seq_asignaturas');
 SELECT drop_sequence_if_exists('seq_grupos');
 SELECT drop_sequence_if_exists('seq_estudiantes');
 SELECT drop_sequence_if_exists('seq_horarios');
-SELECT drop_sequence_if_exists('seq_notas');      -- New: for notas
-SELECT drop_sequence_if_exists('seq_asistencia'); -- New: for asistencia
-SELECT drop_sequence_if_exists('seq_asesorias');  -- New: for asesorias
+SELECT drop_sequence_if_exists('seq_notas');      
+SELECT drop_sequence_if_exists('seq_asistencia'); 
+SELECT drop_sequence_if_exists('seq_asesorias');  
 
 
 -- Create Tables
@@ -113,7 +113,7 @@ CREATE TABLE Notas (
     profesor_id INTEGER REFERENCES Profesores(Profesor_ID),
     corte INTEGER NOT NULL,
     tipo_nota VARCHAR(50) NOT NULL,
-    nombrecolumnaextra VARCHAR(100), -- NEW COLUMN ADDED HERE
+    nombrecolumnaextra VARCHAR(100), 
     nota NUMERIC(4, 2) NOT NULL CHECK (nota >= 0 AND nota <= 5),
     UNIQUE (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota)
 );
@@ -148,7 +148,6 @@ INSERT INTO Grupos (Grupo_ID, NombreGrupo, NivelGrupo, CapacidadGrupo) VALUES
 INSERT INTO Grupos (Grupo_ID, NombreGrupo, NivelGrupo, CapacidadGrupo) VALUES
 (3, 'CR', 'Nivel III', 10);
 
---insert estudiantes
 INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
 ('Kevin', 'Marquez', 'kevin.marquez@email.com', '2003-05-10', 1, 'kevin123');
 INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
@@ -172,7 +171,6 @@ INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, 
 INSERT INTO Estudiantes (NombreEstudiante, ApellidoEstudiante, EmailEstudiante, FechaNacimiento, Grupo_ID, Contrasena) VALUES
 ('Jerley', 'Hernandez', 'jerley.hernandez@email.com', '2003-07-26', 3, 'jerley123');
 
---insert aulas
 INSERT INTO Aulas (NombreAula, Capacidad, TipoAula, Ubicacion) VALUES
 ('GM 104-2', 30, 'Normal', 'Primer Piso');
 INSERT INTO Aulas (NombreAula, Capacidad, TipoAula, Ubicacion) VALUES
@@ -182,7 +180,6 @@ INSERT INTO Aulas (NombreAula, Capacidad, TipoAula, Ubicacion) VALUES
 INSERT INTO Aulas (NombreAula, Capacidad, TipoAula, Ubicacion) VALUES
 ('GM 209-2', 25, 'Laboratorio', 'Segundo Piso');
 
---insert asignaturas
 INSERT INTO Asignaturas (NombreAsignatura, DescripcionAsignatura, Creditos, DuracionClase) VALUES
 ('Base de Datos', 'Fundamentos de bases de datos relacionales', 4, 180);
 INSERT INTO Asignaturas (NombreAsignatura, DescripcionAsignatura, Creditos, DuracionClase) VALUES
@@ -192,7 +189,6 @@ INSERT INTO Asignaturas (NombreAsignatura, DescripcionAsignatura, Creditos, Dura
 INSERT INTO Asignaturas (NombreAsignatura, DescripcionAsignatura, Creditos, DuracionClase) VALUES
 ('Desarrollo de Plataformas', 'Desarrollo de aplicaciones web', 4, 150);
 
---insert profesores
 INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES
 ('Harvey', 'Gamboa', 'harvey.gamboa@email.com', '123-456-7890', '4:00 pm a 6:00 pm', 'harvey123');
 INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES
@@ -202,7 +198,6 @@ INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, Telefon
 INSERT INTO Profesores (NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad, Contrasena) VALUES
 ('Fanny', 'Casadiego', 'fanny.casadiego@email.com', '111-222-3333', '2:00 pm a 4:00 pm', 'fanny123');
 
---insert horarios
 INSERT INTO Horarios (Asignatura_ID, Profesor_ID, Aula_ID, Grupo_ID, DiaSemana, HoraInicio, HoraFin) VALUES
 (1, 1, 1, 1, 'Lunes', '2025-01-01 14:00:00', '2025-01-01 16:00:00');
 INSERT INTO Horarios (Asignatura_ID, Profesor_ID, Aula_ID, Grupo_ID, DiaSemana, HoraInicio, HoraFin) VALUES
@@ -220,7 +215,6 @@ INSERT INTO Horarios (Asignatura_ID, Profesor_ID, Aula_ID, Grupo_ID, DiaSemana, 
 INSERT INTO Horarios (Asignatura_ID, Profesor_ID, Aula_ID, Grupo_ID, DiaSemana, HoraInicio, HoraFin) VALUES
 (4, 4, 4, 3, 'Viernes', '2025-01-01 09:00:00', '2025-01-01 11:00:00');
 
--- Insert Asistencia data
 INSERT INTO Asistencia (Estudiante_ID, Asignatura_ID, Fecha, Presente) VALUES
 (1, 1, '2025-06-03', TRUE);
 INSERT INTO Asistencia (Estudiante_ID, Asignatura_ID, Fecha, Presente) VALUES
@@ -232,7 +226,6 @@ INSERT INTO Asistencia (Estudiante_ID, Asignatura_ID, Fecha, Presente) VALUES
 INSERT INTO Asistencia (Estudiante_ID, Asignatura_ID, Fecha, Presente) VALUES
 (4, 4, '2025-06-03', TRUE);
 
--- Insert Asesorias data (Example)
 INSERT INTO Asesorias (Profesor_ID, Titulo, Descripcion, Fecha, HoraInicio, HoraFin, Aula_ID, Capacidad) VALUES
 (1, 'Asesoría de Lógica', 'Repaso de conceptos de lógica proposicional.', '2025-06-10', '10:00:00', '11:00:00', 1, 5);
 INSERT INTO Asesorias (Profesor_ID, Titulo, Descripcion, Fecha, HoraInicio, HoraFin, Aula_ID, Capacidad) VALUES

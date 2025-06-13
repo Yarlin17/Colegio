@@ -1,10 +1,8 @@
-# proColegio/app.py
-
-from flask import Flask, request, jsonify, render_template, url_for, send_from_directory
-from flask_bcrypt import Bcrypt
 import psycopg2
 import psycopg2.extras
-from decimal import Decimal # Import the Decimal type
+from flask import Flask, jsonify, request, render_template, url_for, send_from_directory
+from flask_bcrypt import Bcrypt
+from decimal import Decimal
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
 bcrypt = Bcrypt(app)
@@ -14,7 +12,7 @@ def get_db_connection():
     return psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",
-        password="0102",
+        password="1234",
         host="localhost",
         port=5432
     )
@@ -76,15 +74,33 @@ def get_profesores():
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     profesor_id = request.args.get('profesor_id')
     email = request.args.get('email')
+    estudiante_id = request.args.get('estudiante_id') # Get estudiante_id
 
-    query = "SELECT Profesor_ID, NombreProfesor, ApellidoProfesor, EmailProfesor, TelefonoProfesor, Disponibilidad FROM Profesores WHERE 1=1"
+    query = "SELECT DISTINCT p.Profesor_ID, p.NombreProfesor, p.ApellidoProfesor, p.EmailProfesor, p.TelefonoProfesor, p.Disponibilidad FROM Profesores p WHERE 1=1"
     params = []
+
     if profesor_id:
-        query += " AND Profesor_ID = %s"
+        query += " AND p.Profesor_ID = %s"
         params.append(profesor_id)
     if email:
-        query += " AND EmailProfesor = %s"
+        query += " AND p.EmailProfesor = %s"
         params.append(email)
+    
+    if estudiante_id: # Filter by student's assigned teachers
+        cur.execute("SELECT Grupo_ID FROM Estudiantes WHERE Estudiante_ID = %s", (estudiante_id,))
+        student_group = cur.fetchone()
+        
+        if student_group:
+            group_id = student_group['grupo_id']
+            query += """
+                AND p.Profesor_ID IN (
+                    SELECT h.Profesor_ID FROM Horarios h
+                    WHERE h.Grupo_ID = %s
+                )
+            """
+            params.append(group_id)
+        else:
+            return jsonify([]), 200
 
     cur.execute(query, params)
     rows = cur.fetchall()
@@ -98,7 +114,7 @@ def get_estudiantes():
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     grupo_id = request.args.get('grupo_id')
     estudiante_id = request.args.get('estudiante_id')
-    email = request.args.get('email') # Get email from query parameters
+    email = request.args.get('email') 
 
     query = "SELECT * FROM Estudiantes WHERE 1=1"
     params = []
@@ -108,9 +124,9 @@ def get_estudiantes():
     if estudiante_id:
         query += " AND Estudiante_ID = %s"
         params.append(estudiante_id)
-    if email: # <-- ADD THIS CONDITION
-        query += " AND EmailEstudiante = %s" # <-- ADD THIS FILTER
-        params.append(email) # <-- ADD THIS PARAMETER
+    if email: 
+        query += " AND EmailEstudiante = %s" 
+        params.append(email) 
 
     cur.execute(query, params)
     rows = cur.fetchall()
@@ -118,35 +134,75 @@ def get_estudiantes():
     conn.close()
     return jsonify([dict(row) for row in rows])
 
-@app.route('/api/aulas')
+@app.route('/api/aulas', methods=['GET'])
 def get_aulas():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     aula_id = request.args.get('aula_id')
+    estudiante_id = request.args.get('estudiante_id') # Get estudiante_id
 
-    query = "SELECT * FROM Aulas WHERE 1=1"
+    query = "SELECT DISTINCT a.* FROM Aulas a WHERE 1=1"
     params = []
+
     if aula_id:
-        query += " AND Aula_ID = %s"
+        query += " AND a.Aula_ID = %s"
         params.append(aula_id)
+    
+    if estudiante_id: # Filter by student's assigned aulas
+        cur.execute("SELECT Grupo_ID FROM Estudiantes WHERE Estudiante_ID = %s", (estudiante_id,))
+        student_group = cur.fetchone()
+
+        if student_group:
+            group_id = student_group['grupo_id']
+            query += """
+                AND a.Aula_ID IN (
+                    SELECT h.Aula_ID FROM Horarios h
+                    WHERE h.Grupo_ID = %s
+                )
+            """
+            params.append(group_id)
+        else:
+            return jsonify([]), 200
 
     cur.execute(query, params)
     rows = cur.fetchall()
     cur.close()
     conn.close()
     return jsonify([dict(row) for row in rows])
+
 
 @app.route('/api/asignaturas', methods=['GET'])
 def get_asignaturas():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     asignatura_id = request.args.get('asignatura_id')
+    estudiante_id = request.args.get('estudiante_id') # Get estudiante_id from query parameters
 
-    query = "SELECT * FROM Asignaturas WHERE 1=1"
+    query = "SELECT DISTINCT s.* FROM Asignaturas s WHERE 1=1" # Use DISTINCT to avoid duplicates
     params = []
+
     if asignatura_id:
-        query += " AND Asignatura_ID = %s"
+        query += " AND s.Asignatura_ID = %s"
         params.append(asignatura_id)
+    
+    if estudiante_id: # Filter by student's assigned subjects
+        # First, find the student's group_id
+        cur.execute("SELECT Grupo_ID FROM Estudiantes WHERE Estudiante_ID = %s", (estudiante_id,))
+        student_group = cur.fetchone()
+        
+        if student_group:
+            group_id = student_group['grupo_id']
+            # Join with Horarios to find subjects taught to this group
+            query += """
+                AND s.Asignatura_ID IN (
+                    SELECT h.Asignatura_ID FROM Horarios h
+                    WHERE h.Grupo_ID = %s
+                )
+            """
+            params.append(group_id)
+        else:
+            # If student not found or has no group, return empty
+            return jsonify([]), 200
 
     cur.execute(query, params)
     rows = cur.fetchall()
@@ -226,7 +282,7 @@ def get_notas():
 
     query = """
         SELECT n.nota_id, n.estudiante_id, n.asignatura_id, n.profesor_id, n.corte, n.tipo_nota, n.nota,
-               n.nombrecolumnaextra, -- SELECT THE NEW COLUMN
+               n.nombrecolumnaextra, 
                e.NombreEstudiante, e.ApellidoEstudiante, a.NombreAsignatura,
                p.NombreProfesor, p.ApellidoProfesor
         FROM Notas n
@@ -277,7 +333,7 @@ def create_or_update_nota():
     profesor_id = data.get('profesor_id')
     corte = data.get('corte')
     tipo_nota = data.get('tipo_nota')
-    nombre_columna_extra = data.get('nombre_columna_extra') # NEW: Get the custom name
+    nombre_columna_extra = data.get('nombre_columna_extra') 
     nota = data.get('nota')
 
     if not all([estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nota is not None]):
@@ -288,7 +344,6 @@ def create_or_update_nota():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Check if the note already exists
         cur.execute("""
             SELECT nota_id FROM Notas
             WHERE estudiante_id = %s AND asignatura_id = %s AND profesor_id = %s AND corte = %s AND tipo_nota = %s
@@ -296,19 +351,17 @@ def create_or_update_nota():
         existing_nota = cur.fetchone()
 
         if existing_nota:
-            # Update existing note, including nombrecolumnaextra
             cur.execute("""
                 UPDATE Notas SET nota = %s, nombrecolumnaextra = %s
                 WHERE nota_id = %s
-            """, (nota, nombre_columna_extra, existing_nota[0])) # Pass nombre_columna_extra to update
+            """, (nota, nombre_columna_extra, existing_nota[0])) 
             nota_id = existing_nota[0]
         else:
-            # Insert new note, including nombrecolumnaextra
             cur.execute("""
                 INSERT INTO Notas (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nombrecolumnaextra, nota)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING nota_id
-            """, (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nombre_columna_extra, nota)) # Pass nombre_columna_extra to insert
+            """, (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nombre_columna_extra, nota)) 
             nota_id = cur.fetchone()[0]
 
         conn.commit()
@@ -347,16 +400,31 @@ def bulk_delete_notas():
     asignatura_id = data.get('asignatura_id')
     corte = data.get('corte')
     tipo_nota = data.get('tipo_nota')
+    grupo_id = data.get('grupo_id') # Get grupo_id from request
 
     conn = None
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        query = "DELETE FROM Notas WHERE profesor_id = %s AND asignatura_id = %s AND corte = %s"
+        
+        # Build the DELETE query dynamically
+        # Modified to join with Estudiantes and filter by Grupo_ID
+        query = """
+            DELETE FROM Notas n
+            USING Estudiantes e
+            WHERE n.estudiante_id = e.Estudiante_ID
+            AND n.profesor_id = %s
+            AND n.asignatura_id = %s
+            AND n.corte = %s
+        """
         params = [profesor_id, asignatura_id, corte]
 
-        if tipo_nota:
-            query += " AND tipo_nota = %s"
+        if grupo_id: # Conditionally add group filter
+            query += " AND e.Grupo_ID = %s"
+            params.append(grupo_id)
+
+        if tipo_nota: # Conditionally add type filter (for deleting single column)
+            query += " AND n.tipo_nota = %s"
             params.append(tipo_nota)
 
         cur.execute(query, params)
@@ -376,10 +444,10 @@ def bulk_delete_notas():
 def get_asistencia():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    estudiante_id = request.args.get('estudiante_id') #
-    asignatura_id = request.args.get('asignatura_id') #
-    fecha = request.args.get('fecha') #YYYY-MM-DD
-    grupo_id = request.args.get('grupo_id') # Filter by group for professor view
+    estudiante_id = request.args.get('estudiante_id') 
+    asignatura_id = request.args.get('asignatura_id') 
+    fecha = request.args.get('fecha') 
+    grupo_id = request.args.get('grupo_id') 
 
     query = """
         SELECT a.Asistencia_ID, a.Estudiante_ID, e.NombreEstudiante, e.ApellidoEstudiante,
@@ -387,7 +455,7 @@ def get_asistencia():
         FROM Asistencia a
         JOIN Estudiantes e ON a.Estudiante_ID = e.Estudiante_ID
         JOIN Asignaturas s ON a.Asignatura_ID = s.Asignatura_ID
-        LEFT JOIN Grupos g ON e.Grupo_ID = g.Grupo_ID -- Join to get group name
+        LEFT JOIN Grupos g ON e.Grupo_ID = g.Grupo_ID 
         WHERE 1=1
     """
     params = []
@@ -402,7 +470,7 @@ def get_asistencia():
         query += " AND a.Fecha = %s"
         params.append(fecha)
     if grupo_id:
-        query += " AND e.Grupo_ID = %s" # Filter students by their group
+        query += " AND e.Grupo_ID = %s" 
         params.append(grupo_id)
 
     query += " ORDER BY a.Fecha DESC, e.NombreEstudiante, s.NombreAsignatura"
@@ -412,7 +480,6 @@ def get_asistencia():
     cur.close()
     conn.close()
 
-    # --- ADD THIS DEBUGGING LINE ---
     print(f"DEBUG: Asistencia API returning: {[dict(row) for row in rows]}")
 
     return jsonify([dict(row) for row in rows])
@@ -433,7 +500,6 @@ def record_asistencia():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        # Check if attendance already exists for this student, class, and date
         cur.execute("""
             SELECT Asistencia_ID FROM Asistencia
             WHERE Estudiante_ID = %s AND Asignatura_ID = %s AND Fecha = %s
