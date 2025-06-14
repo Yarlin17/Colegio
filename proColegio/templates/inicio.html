@@ -40,8 +40,7 @@
         <header class="d-flex justify-content-between align-items-center mb-4">
             <h2 id="header-title" class="fs-4 fw-bold mb-0">Mi Panel</h2>
             <div class="user-info d-flex align-items-center">
-                <i class="bi bi-bell-fill fs-5 me-3"></i>
-                <img src="https://i.pravatar.cc/40?u=estudiante" alt="Avatar" class="user-avatar rounded-circle me-2">
+                <div id="user-avatar-estudiante" class="user-avatar rounded-circle me-2 d-flex align-items-center justify-content-center text-white fw-bold"></div>
                 <div>
                     <div id="usuarioNombre" class="fw-semibold"></div>
                     <div class="text-muted small">Estudiante</div>
@@ -76,6 +75,32 @@
         
         if (estudiantes.length > 0) {
           currentEstudianteId = estudiantes[0].estudiante_id;
+
+          // Generar iniciales para el estudiante (Nombre + Apellido)
+          let inicialesEstudiante = '';
+          if (estudiantes[0].nombreestudiante) { 
+              inicialesEstudiante += estudiantes[0].nombreestudiante.charAt(0).toUpperCase();
+          } else {
+            const usuarioNombreLocal = localStorage.getItem("usuarioNombre");
+            if (usuarioNombreLocal) inicialesEstudiante += usuarioNombreLocal.charAt(0).toUpperCase();
+          }
+
+          if (estudiantes[0].apellidoestudiante) { 
+              inicialesEstudiante += estudiantes[0].apellidoestudiante.charAt(0).toUpperCase();
+          } else {
+            const usuarioApellidoLocal = localStorage.getItem("usuarioApellido");
+            if (usuarioApellidoLocal) inicialesEstudiante += usuarioApellidoLocal.charAt(0).toUpperCase();
+          }
+
+          if (!inicialesEstudiante) {
+              inicialesEstudiante = 'ES'; // Por defecto si no hay nombre/apellido
+          }
+          document.getElementById('user-avatar-estudiante').textContent = inicialesEstudiante;
+
+          // Asignar color dinámico basado en la primera letra del nombre del estudiante
+          const colorClassEstudiante = getColorClassForInitial(estudiantes[0].nombreestudiante || localStorage.getItem("usuarioNombre"));
+          document.getElementById('user-avatar-estudiante').classList.add(colorClassEstudiante);
+
           cargarVista('dashboard');
         } else { 
           throw new Error("Estudiante no encontrado en la base de datos."); 
@@ -143,6 +168,9 @@
 
         const backButton = `<button class="btn btn-secondary mb-3" onclick="cargarVista('dashboard')"><i class="bi bi-arrow-left me-2"></i>Volver al Panel</button>`;
         let contentHTML = '';
+        // Declaración de variables fuera del switch para evitar errores de ámbito
+        let asistencias; 
+        let asignaturas; 
 
         try {
             switch (seccion) {
@@ -222,7 +250,7 @@
                     break;
                 case 'mi-asistencia':
                     const asistenciaRes = await fetch(`/api/asistencia?estudiante_id=${currentEstudianteId}`);
-                    const asistencias = await asistenciaRes.json();
+                    asistencias = await asistenciaRes.json(); // Asignación aquí
                     contentHTML = `<div class="card shadow-sm border-0"><div class="card-body"><div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Asignatura</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>`;
                     if(asistencias.length > 0){
                         contentHTML += asistencias.map(a => `<tr><td>${a.nombreasignatura}</td><td>${new Date(a.fecha).toLocaleDateString('es-ES', {timeZone: 'UTC'})}</td><td><span class="badge ${a.presente ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'}">${a.presente ? 'Presente' : 'Ausente'}</span></td></tr>`).join('');
@@ -269,7 +297,7 @@
                     break;
                 case 'asignaturas':
                     const asignaturasRes = await fetch(`/api/asignaturas?estudiante_id=${currentEstudianteId}`);
-                    const asignaturas = await asignaturasRes.json();
+                    asignaturas = await asignaturasRes.json(); // Asignación aquí
                     contentHTML = `<div class="list-group shadow-sm">` + asignaturas.map(item => `
                         <div class="list-group-item">
                             <h6 class="mb-1">${item.nombreasignatura}</h6>
@@ -299,6 +327,21 @@
         } else {
             alert('No se encontró la tabla de horario para descargar.');
         }
+    }
+
+    // Nueva función para obtener la clase de color
+    function getColorClassForInitial(name) {
+        if (!name) return 'bg-secondary'; // Color por defecto
+
+        const colors = [
+            'bg-primary', 'bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-dark',
+            'bg-secondary' // Adding another Bootstrap color
+        ];
+        
+        // Un hash simple para asignar un color consistente a cada inicial
+        const charCode = name.charCodeAt(0);
+        const index = charCode % colors.length;
+        return colors[index];
     }
 </script>
 </body>

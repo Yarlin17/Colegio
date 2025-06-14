@@ -63,10 +63,14 @@ body {
     overflow-y: auto;
 }
 
+/* MODIFICADO: .user-avatar para las iniciales */
 .user-avatar {
     width: 40px;
     height: 40px;
+    font-size: 1.2rem; /* Tamaño de la letra de la inicial */
+    /* Las clases de Bootstrap d-flex, align-items-center, justify-content-center se encargarán de centrar el texto */
 }
+
 
 .kpi-card .card-body {
     display: flex;

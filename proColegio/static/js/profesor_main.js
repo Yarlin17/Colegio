@@ -24,6 +24,23 @@ window.onload = async function() {
       profesorDatosGenerales = profesores[0];
       currentProfesorId = profesorDatosGenerales.profesor_id;
 
+      // Generar iniciales para el profesor (Nombre + Apellido)
+      let inicialesProfesor = '';
+      if (profesorDatosGenerales.nombreprofesor) {
+          inicialesProfesor += profesorDatosGenerales.nombreprofesor.charAt(0).toUpperCase();
+      }
+      if (profesorDatosGenerales.apellidoprofesor) {
+          inicialesProfesor += profesorDatosGenerales.apellidoprofesor.charAt(0).toUpperCase();
+      }
+      if (!inicialesProfesor) {
+          inicialesProfesor = 'PR'; // Por defecto si no hay nombre/apellido
+      }
+      document.getElementById('user-avatar-profesor').textContent = inicialesProfesor;
+
+      // Asignar color dinámico basado en la primera letra del nombre del profesor
+      const colorClassProfesor = getColorClassForInitial(profesorDatosGenerales.nombreprofesor);
+      document.getElementById('user-avatar-profesor').classList.add(colorClassProfesor);
+
       const horariosResponse = await fetch(`/api/horarios?profesor_id=${currentProfesorId}`);
       const horarios = await horariosResponse.json();
       await procesarClases(horarios);
@@ -156,4 +173,19 @@ async function cargarVistaProfesor(seccion) {
     default:
       contenedor.innerHTML = `<div class="alert alert-warning">Sección no encontrada.</div>`;
   }
+}
+
+// Nueva función para obtener la clase de color (reutilizable)
+function getColorClassForInitial(name) {
+    if (!name) return 'bg-secondary'; // Color por defecto
+
+    const colors = [
+        'bg-primary', 'bg-success', 'bg-info', 'bg-warning', 'bg-danger', 'bg-dark',
+        'bg-secondary' // Adding another Bootstrap color
+    ];
+    
+    // Un hash simple para asignar un color consistente a cada inicial
+    const charCode = name.charCodeAt(0);
+    const index = charCode % colors.length;
+    return colors[index];
 }
