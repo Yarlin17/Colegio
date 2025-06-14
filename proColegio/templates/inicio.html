@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body class="bg-light">
 
@@ -233,8 +234,14 @@
                 case 'horarios':
                     const horariosRes = await fetch(`/api/horarios?estudiante_id=${currentEstudianteId}`);
                     const horarios = await horariosRes.json();
-                    contentHTML = `<div class="card shadow-sm border-0"><div class="card-body"><div class="table-responsive"><table class="table table-hover align-middle">
-                        <thead><tr><th>Asignatura</th><th>Docente</th><th>Día</th><th>Hora</th><th>Aula</th></tr></thead><tbody>`;
+                    contentHTML = `
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-primary" onclick="downloadSchedulePdf()"><i class="bi bi-file-earmark-arrow-down me-2"></i>Descargar Horario PDF</button>
+                        </div>
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle" id="studentScheduleTable"> <thead><tr><th>Asignatura</th><th>Docente</th><th>Día</th><th>Hora</th><th>Aula</th></tr></thead><tbody>`;
                     if(horarios.length > 0){
                         contentHTML += horarios.map(h => `<tr><td>${h.nombreasignatura}</td><td>${h.nombreprofesor} ${h.apellidoprofesor}</td><td>${h.diasemana}</td><td>${new Date(h.horainicio).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})} - ${new Date(h.horafin).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})}</td><td>${h.nombreaula}</td></tr>`).join('');
                     } else {
@@ -243,7 +250,6 @@
                     contentHTML += `</tbody></table></div></div></div>`;
                     break;
                 case 'docentes':
-                    // Pass currentEstudianteId to filter docentes
                     const docentesRes = await fetch(`/api/profesores?estudiante_id=${currentEstudianteId}`);
                     const docentes = await docentesRes.json();
                     contentHTML = `<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">` + docentes.map(d => `
@@ -253,7 +259,6 @@
                         </div></div></div>`).join('') + `</div>`;
                     break;
                 case 'aulas':
-                    // Pass currentEstudianteId to filter aulas
                     const aulasRes = await fetch(`/api/aulas?estudiante_id=${currentEstudianteId}`); 
                     const aulas = await aulasRes.json();
                     contentHTML = `<div class="list-group shadow-sm">` + aulas.map(item => `
@@ -263,7 +268,6 @@
                         </div>`).join('') + `</div>`;
                     break;
                 case 'asignaturas':
-                    // Pass currentEstudianteId to filter subjects
                     const asignaturasRes = await fetch(`/api/asignaturas?estudiante_id=${currentEstudianteId}`);
                     const asignaturas = await asignaturasRes.json();
                     contentHTML = `<div class="list-group shadow-sm">` + asignaturas.map(item => `
@@ -278,6 +282,22 @@
             contenedor.innerHTML = (seccion !== 'dashboard' ? backButton : '') + contentHTML;
         } catch (error) {
             contenedor.innerHTML = `<div class="alert alert-danger">Error al cargar la vista: ${error.message}</div>`;
+        }
+    }
+
+    // Function to download the schedule as PDF
+    function downloadSchedulePdf() {
+        const element = document.getElementById('studentScheduleTable');
+        if (element) {
+            html2pdf(element, {
+                margin: 10,
+                filename: `horario_${localStorage.getItem("usuarioNombre")}_${localStorage.getItem("usuarioApellido")}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            });
+        } else {
+            alert('No se encontró la tabla de horario para descargar.');
         }
     }
 </script>

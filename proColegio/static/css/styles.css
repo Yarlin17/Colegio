@@ -8,10 +8,12 @@
     --primary-dark: #111827;
     --accent-blue: #3b82f6;
     --accent-blue-hover: #2563eb;
+    --bs-light-rgb: 248,249,250; /* Ensure this is defined or matching Bootstrap */
 }
 
 body {
     font-family: var(--bs-body-font-family);
+    background-color: var(--bs-light) !important; /* Ensure light background */
 }
 
 .sidebar {
@@ -105,4 +107,126 @@ body {
     padding: 0.25rem 0.75rem;
     border-radius: 99px;
     font-size: 0.875rem;
+}
+
+/* --- NEW/MODIFIED STYLES FOR TABLES AND INPUTS --- */
+
+/* General Card and Table enhancements */
+.card {
+    border: none; /* Ensure no default Bootstrap border */
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05); /* Soft shadow for elevation */
+    border-radius: 0.75rem; /* Slightly rounded corners for cards */
+}
+
+.card-header {
+    background-color: white; /* Keep headers white */
+    border-bottom: 1px solid #e0e0e0; /* Subtle border below header */
+    font-weight: 600;
+    padding: 1rem 1.5rem; /* More padding */
+    border-top-left-radius: 0.75rem; /* Match card radius */
+    border-top-right-radius: 0.75rem; /* Match card radius */
+}
+
+/* Table specific styles */
+.table {
+    --bs-table-bg: #fff; /* Ensure white background for table rows */
+    --bs-table-striped-bg: #f8f9fa; /* Lighter stripe for striped tables */
+    --bs-table-hover-bg: #f0f2f5; /* More visible hover */
+    margin-bottom: 0; /* Remove default margin from last table in card */
+}
+
+.table th {
+    font-weight: 600;
+    background-color: #f2f4f6; /* Light gray background for table headers */
+    border-bottom: 2px solid #e9ecef; /* Stronger bottom border for header */
+    padding: 0.75rem 1.25rem; /* More padding in headers */
+    text-align: left; /* Align text to left */
+    vertical-align: middle;
+}
+
+.table td {
+    padding: 0.75rem 1.25rem; /* Consistent padding for cells */
+    vertical-align: middle;
+    border-color: #e9ecef; /* Lighter border for cells */
+}
+
+/* Input fields within tables */
+.table .form-control {
+    border-radius: 0.375rem; /* Slightly rounded input fields */
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.table .form-control:focus {
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25); /* Bootstrap focus style */
+}
+
+/* Specific style for 'Promedio Corte' input (if it's greyed out) */
+.table input[readonly]:not(.grade-input) { /* Applies to average fields */
+    background-color: #e9ecef !important;
+    color: #495057;
+    border-color: #dee2e6;
+    opacity: 1; /* Ensure full opacity */
+}
+
+/* Grade input validation styles */
+.grade-input.is-invalid {
+    border-color: var(--bs-danger);
+    padding-right: calc(1.5em + 0.75rem); /* Space for icon if Bootstrap provides one */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle r='.5' cx='6' cy='8.2'/%3e%3c/svg%3e") !important; /* Custom invalid icon */
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.grade-input.is-invalid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.25);
+}
+
+.invalid-feedback {
+    display: block; /* Ensure it's visible */
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: var(--bs-danger);
+}
+
+/* Button group within card header */
+.card-header .btn-group-sm .btn {
+    border-radius: 0.375rem; /* Match input border-radius */
+    padding: 0.375rem 0.75rem; /* Slightly more padding */
+    font-size: 0.875rem;
+}
+
+/* Styling for the save button when unsaved changes exist */
+.btn-warning {
+    --bs-btn-bg: #ffc107; /* Bootstrap yellow */
+    --bs-btn-border-color: #ffc107;
+    --bs-btn-hover-bg: #e0a800;
+    --bs-btn-hover-border-color: #d39e00;
+    --bs-btn-active-bg: #d39e00;
+    --bs-btn-active-border-color: #c69500;
+}
+
+/* Adjustments for badges (Aprobado/Reprobado) */
+.badge.bg-success-subtle {
+    background-color: #d1e7dd !important; /* Lighter green background */
+}
+.badge.text-success-emphasis {
+    color: #0f5132 !important; /* Darker green text */
+}
+.badge.bg-danger-subtle {
+    background-color: #f8d7da !important; /* Lighter red background */
+}
+.badge.text-danger-emphasis {
+    color: #842029 !important; /* Darker red text */
+}
+
+/* Specific to the Horario PDF button for consistency */
+.main-content .btn-primary {
+    --bs-btn-bg: var(--accent-blue);
+    --bs-btn-border-color: var(--accent-blue);
+    --bs-btn-hover-bg: var(--accent-blue-hover);
+    --bs-btn-hover-border-color: var(--accent-blue-hover);
 }

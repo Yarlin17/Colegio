@@ -132,7 +132,6 @@ def init_db(conn):
             (6, 'FR', 'Nivel III', 11)
         ]
         cur.executemany("INSERT INTO Grupos (Grupo_ID, NombreGrupo, NivelGrupo, CapacidadGrupo) VALUES (%s, %s, %s, %s);", grupos_data)
-        # Removed setval for grupos_grupo_id_seq as Grupo_ID is INTEGER PRIMARY KEY, not SERIAL.
 
 
         # Insertar datos en Aulas
@@ -212,7 +211,7 @@ def init_db(conn):
         cur.execute("SELECT setval('estudiantes_estudiante_id_seq', (SELECT MAX(Estudiante_ID) FROM Estudiantes));")
 
 
-        # Insertar datos en Horarios (Ensuring professors have at least 3 groups)
+        # Insertar datos en Horarios (Ensuring professors have at least 3 groups and fixing conflict)
         horarios_data = [
             # Prof. Harvey Gamboa (ID 1) - Targets groups 1, 2, 3 (min 3)
             (1, 1, 1, 1, 'Lunes', datetime(2025, 1, 1, 8, 0), datetime(2025, 1, 1, 10, 0)), # Base de Datos, Grupo AR
@@ -222,7 +221,7 @@ def init_db(conn):
 
             # Prof. Jesus Duran (ID 2) - Targets groups 1, 2, 4 (min 3)
             (2, 2, 3, 2, 'Martes', datetime(2025, 1, 1, 10, 0), datetime(2025, 1, 1, 12, 0)), # Logica, Grupo BR
-            (2, 2, 3, 2, 'Jueves', datetime(2025, 1, 1, 10, 0), datetime(2025, 1, 1, 12, 0)),
+            (2, 2, 3, 2, 'Jueves', datetime(2025, 1, 1, 17, 30), datetime(2025, 1, 1, 19, 30)), # Logica, Grupo BR -- CONFLICT RESOLVED: Changed from 05:00 to 17:30 (5:30 PM) to avoid overlap with Fanny's class
             (2, 2, 4, 1, 'Miércoles', datetime(2025, 1, 1, 16, 0), datetime(2025, 1, 1, 18, 0)), # Logica, Grupo AR
             (2, 2, 4, 4, 'Viernes', datetime(2025, 1, 1, 16, 0), datetime(2025, 1, 1, 18, 0)), # Logica, Grupo DR (Today: Friday, June 13, 2025)
 
@@ -233,7 +232,7 @@ def init_db(conn):
 
             # Prof. Fanny Casadiego (ID 4) - Targets groups 1, 2, 4 (min 3)
             (4, 4, 6, 1, 'Martes', datetime(2025, 1, 1, 8, 0), datetime(2025, 1, 1, 10, 30)), # Desarrollo Web, Grupo AR
-            (4, 4, 6, 2, 'Jueves', datetime(2025, 1, 1, 8, 0), datetime(2025, 1, 1, 10, 30)), # Desarrollo Web, Grupo BR
+            (4, 4, 6, 2, 'Jueves', datetime(2025, 1, 1, 15, 0), datetime(2025, 1, 1, 17, 30)), # Desarrollo Web, Grupo BR (This one was 03:00-05:30, fixed to 15:00-17:30)
             (4, 4, 7, 4, 'Lunes', datetime(2025, 1, 1, 11, 0), datetime(2025, 1, 1, 13, 30)), # Desarrollo Web, Grupo DR
 
             # Prof. Ana Martinez (ID 5) - Targets groups 3, 5, 6 (min 3)
@@ -255,7 +254,6 @@ def init_db(conn):
         cur.execute("SELECT setval('horarios_horario_id_seq', (SELECT MAX(Horario_ID) FROM Horarios));")
 
         # Get professor and student IDs for generating notes/attendance
-        # Corrected: Accessing tuple elements by index instead of string keys
         cur.execute("SELECT Profesor_ID, EmailProfesor FROM Profesores;")
         professors_lookup = {row[1]: row[0] for row in cur.fetchall()} # {email: id}
 
