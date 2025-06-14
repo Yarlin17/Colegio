@@ -21,13 +21,13 @@
             <span class="sidebar-title fs-5 fw-bold">EduPanel</span>
         </div>
         <nav class="nav flex-column sidebar-nav">
-            <a class="nav-link active" href="#" onclick="cargarVista('dashboard')"><i class="bi bi-grid-fill me-2"></i> Mi Panel</a>
-            <a class="nav-link" href="#" onclick="cargarVista('mis-notas')"><i class="bi bi-pencil-square me-2"></i> Mis Notas</a>
-            <a class="nav-link" href="#" onclick="cargarVista('mi-asistencia')"><i class="bi bi-check-circle-fill me-2"></i> Mi Asistencia</a>
-            <a class="nav-link" href="#" onclick="cargarVista('horarios')"><i class="bi bi-calendar-week me-2"></i> Mi Horario</a>
-            <a class="nav-link" href="#" onclick="cargarVista('docentes')"><i class="bi bi-people-fill me-2"></i> Docentes</a>
-            <a class="nav-link" href="#" onclick="cargarVista('aulas')"><i class="bi bi-door-open-fill me-2"></i> Aulas</a>
-            <a class="nav-link" href="#" onclick="cargarVista('asignaturas')"><i class="bi bi-journal-bookmark-fill me-2"></i> Asignaturas</a>
+            <a class="nav-link active" href="#" data-view="dashboard"><i class="bi bi-grid-fill me-2"></i> Mi Panel</a>
+            <a class="nav-link" href="#" data-view="mis-notas"><i class="bi bi-pencil-square me-2"></i> Mis Notas</a>
+            <a class="nav-link" href="#" data-view="mi-asistencia"><i class="bi bi-check-circle-fill me-2"></i> Mi Asistencia</a>
+            <a class="nav-link" href="#" data-view="horarios"><i class="bi bi-calendar-week me-2"></i> Mi Horario</a>
+            <a class="nav-link" href="#" data-view="docentes"><i class="bi bi-people-fill me-2"></i> Docentes</a>
+            <a class="nav-link" href="#" data-view="aulas"><i class="bi bi-door-open-fill me-2"></i> Aulas</a>
+            <a class="nav-link" href="#" data-view="asignaturas"><i class="bi bi-journal-bookmark-fill me-2"></i> Asignaturas</a>
         </nav>
         <div class="mt-auto">
             <a class="nav-link logout-button" href="#" onclick="cerrarSesion()">
@@ -61,106 +61,16 @@
 <script>
     let currentEstudianteId = null;
 
-    window.onload = async function() {
-      const usuarioNombre = localStorage.getItem("usuarioNombre");
-      const usuarioApellido = localStorage.getItem("usuarioApellido");
-      document.getElementById("usuarioNombre").textContent = `${usuarioNombre || ''} ${usuarioApellido || ''}`;
-      
-      try {
-        const email = localStorage.getItem("usuarioEmail");
-        if (!email) throw new Error("No se encontró el email del usuario.");
-        
-        const response = await fetch(`/api/estudiantes?email=${email}`);
-        const estudiantes = await response.json();
-        
-        if (estudiantes.length > 0) {
-          currentEstudianteId = estudiantes[0].estudiante_id;
-
-          // Generar iniciales para el estudiante (Nombre + Apellido)
-          let inicialesEstudiante = '';
-          if (estudiantes[0].nombreestudiante) { 
-              inicialesEstudiante += estudiantes[0].nombreestudiante.charAt(0).toUpperCase();
-          } else {
-            const usuarioNombreLocal = localStorage.getItem("usuarioNombre");
-            if (usuarioNombreLocal) inicialesEstudiante += usuarioNombreLocal.charAt(0).toUpperCase();
-          }
-
-          if (estudiantes[0].apellidoestudiante) { 
-              inicialesEstudiante += estudiantes[0].apellidoestudiante.charAt(0).toUpperCase();
-          } else {
-            const usuarioApellidoLocal = localStorage.getItem("usuarioApellido");
-            if (usuarioApellidoLocal) inicialesEstudiante += usuarioApellidoLocal.charAt(0).toUpperCase();
-          }
-
-          if (!inicialesEstudiante) {
-              inicialesEstudiante = 'ES'; // Por defecto si no hay nombre/apellido
-          }
-          document.getElementById('user-avatar-estudiante').textContent = inicialesEstudiante;
-
-          // Asignar color dinámico basado en la primera letra del nombre del estudiante
-          const colorClassEstudiante = getColorClassForInitial(estudiantes[0].nombreestudiante || localStorage.getItem("usuarioNombre"));
-          document.getElementById('user-avatar-estudiante').classList.add(colorClassEstudiante);
-
-          cargarVista('dashboard');
-        } else { 
-          throw new Error("Estudiante no encontrado en la base de datos."); 
-        }
-      } catch (error) {
-        document.getElementById("contenido-principal").innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-      }
-    };
-
-    function cerrarSesion() {
-      localStorage.clear();
-      window.location.href = "{{ url_for('index') }}";
-    }
-
-    async function displayStudentDashboard(contenedor) {
-        if (!currentEstudianteId) return;
-        contenedor.innerHTML = `<div class="d-flex justify-content-center mt-5"><div class="spinner-border" role="status"></div></div>`;
-
-        const [notasRes, horariosRes] = await Promise.all([
-            fetch(`/api/notas?estudiante_id=${currentEstudianteId}`),
-            fetch(`/api/horarios?estudiante_id=${currentEstudianteId}`)
-        ]);
-        const notas = await notasRes.json();
-        const horarios = await horariosRes.json();
-
-        let promedioGeneral = notas.length > 0 ? (notas.reduce((acc, n) => acc + n.nota, 0) / notas.length).toFixed(2) : "N/A";
-        const today = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
-        const clasesHoy = horarios.filter(h => h.diasemana.toLowerCase() === today.toLowerCase());
-
-        const dashboardHTML = `
-            <div class="mb-4">
-                <h3 class="fw-bold">Hola, ${localStorage.getItem("usuarioNombre")}</h3>
-                <p class="text-muted">Este es el resumen de tu progreso académico.</p>
-            </div>
-            <div class="row row-cols-1 row-cols-md-2 g-4">
-                <div class="col"><div class="card shadow-sm border-0"><div class="card-body text-center"><h4 class="fw-bold">${[...new Set(horarios.map(h => h.nombreasignatura))].length}</h4><p class="text-muted mb-0">Asignaturas Inscritas</p></div></div></div>
-                <div class="col"><div class="card shadow-sm border-0"><div class="card-body text-center"><h4 class="fw-bold">${promedioGeneral}</h4><p class="text-muted mb-0">Promedio General</p></div></div></div>
-            </div>
-            <div class="card mt-4 shadow-sm border-0">
-                <div class="card-header fw-bold bg-white">Horario de Hoy</div>
-                <div class="list-group list-group-flush">
-                    ${clasesHoy.length > 0 ? clasesHoy.map(c => `
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="mb-0">${c.nombreasignatura}</h6>
-                                <small class="text-muted">Prof. ${c.nombreprofesor} ${c.apellidoprofesor} | Aula: ${c.nombreaula}</small>
-                            </div>
-                            <span class="badge bg-primary rounded-pill">${new Date(c.horainicio).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})}</span>
-                        </div>`).join('') : '<p class="p-3 text-muted">No tienes clases programadas para hoy.</p>'}
-                </div>
-            </div>`;
-        contenedor.innerHTML = dashboardHTML;
-    }
+    // Moved cargarVista and other functions outside window.onload for global scope
+    // so they are available when event listeners are attached.
 
     async function cargarVista(seccion) {
         const contenedor = document.getElementById("contenido-principal");
         contenedor.innerHTML = `<div class="d-flex justify-content-center mt-5"><div class="spinner-border" role="status"></div></div>`;
         
         document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
-        const activeLink = document.querySelector(`.sidebar .nav-link[onclick="cargarVista('${seccion}')"]`);
+        // Find the active link using the data-view attribute
+        const activeLink = document.querySelector(`.sidebar .nav-link[data-view="${seccion}"]`);
         if (activeLink) {
             activeLink.classList.add('active');
             document.getElementById('header-title').textContent = activeLink.textContent.trim();
@@ -168,7 +78,6 @@
 
         const backButton = `<button class="btn btn-secondary mb-3" onclick="cargarVista('dashboard')"><i class="bi bi-arrow-left me-2"></i>Volver al Panel</button>`;
         let contentHTML = '';
-        // Declaración de variables fuera del switch para evitar errores de ámbito
         let asistencias; 
         let asignaturas; 
 
@@ -250,7 +159,7 @@
                     break;
                 case 'mi-asistencia':
                     const asistenciaRes = await fetch(`/api/asistencia?estudiante_id=${currentEstudianteId}`);
-                    asistencias = await asistenciaRes.json(); // Asignación aquí
+                    asistencias = await asistenciaRes.json();
                     contentHTML = `<div class="card shadow-sm border-0"><div class="card-body"><div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Asignatura</th><th>Fecha</th><th>Estado</th></tr></thead><tbody>`;
                     if(asistencias.length > 0){
                         contentHTML += asistencias.map(a => `<tr><td>${a.nombreasignatura}</td><td>${new Date(a.fecha).toLocaleDateString('es-ES', {timeZone: 'UTC'})}</td><td><span class="badge ${a.presente ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'}">${a.presente ? 'Presente' : 'Ausente'}</span></td></tr>`).join('');
@@ -297,7 +206,7 @@
                     break;
                 case 'asignaturas':
                     const asignaturasRes = await fetch(`/api/asignaturas?estudiante_id=${currentEstudianteId}`);
-                    asignaturas = await asignaturasRes.json(); // Asignación aquí
+                    asignaturas = await asignaturasRes.json();
                     contentHTML = `<div class="list-group shadow-sm">` + asignaturas.map(item => `
                         <div class="list-group-item">
                             <h6 class="mb-1">${item.nombreasignatura}</h6>
@@ -311,6 +220,78 @@
         } catch (error) {
             contenedor.innerHTML = `<div class="alert alert-danger">Error al cargar la vista: ${error.message}</div>`;
         }
+    }
+
+    async function displayStudentDashboard(contenedor) {
+        if (!currentEstudianteId) return;
+        contenedor.innerHTML = `<div class="d-flex justify-content-center mt-5"><div class="spinner-border" role="status"></div></div>`;
+
+        const [notasRes, horariosRes, honorRollRes] = await Promise.all([
+            fetch(`/api/notas?estudiante_id=${currentEstudianteId}`),
+            fetch(`/api/horarios?estudiante_id=${currentEstudianteId}`),
+            fetch('/api/cuadro_honor') // Fetch honor roll data
+        ]);
+        const notas = await notasRes.json();
+        const horarios = await horariosRes.json();
+        const honorRoll = await honorRollRes.json();
+
+        let promedioGeneral = notas.length > 0 ? (notas.reduce((acc, n) => acc + n.nota, 0) / notas.length).toFixed(2) : "N/A";
+        const today = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
+        const clasesHoy = horarios.filter(h => h.diasemana.toLowerCase() === today.toLowerCase());
+
+        const honorRollHTML = honorRoll.length > 0 ? `
+            <div class="list-group list-group-flush">
+                ${honorRoll.map((student, index) => `
+                    <div class="list-group-item d-flex align-items-center px-0">
+                        <span class="badge bg-primary rounded-pill me-3">${index + 1}</span>
+                        <div>
+                            <strong>${student.nombreestudiante} ${student.apellidoestudiante}</strong>
+                            <br><small class="text-muted">Promedio: ${student.promedio_general.toFixed(2)}</small>
+                        </div>
+                    </div>`).join('')}
+            </div>` : '<p class="text-muted">No hay estudiantes en el cuadro de honor aún.</p>';
+
+
+        const dashboardHTML = `
+            <div class="mb-4">
+                <h3 class="fw-bold">Hola, ${localStorage.getItem("usuarioNombre")}</h3>
+                <p class="text-muted">Este es el resumen de tu progreso académico.</p>
+            </div>
+            <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+                <div class="col"><div class="card shadow-sm border-0"><div class="card-body text-center"><h4 class="fw-bold">${[...new Set(horarios.map(h => h.nombreasignatura))].length}</h4><p class="text-muted mb-0">Asignaturas Inscritas</p></div></div></div>
+                <div class="col"><div class="card shadow-sm border-0"><div class="card-body text-center"><h4 class="fw-bold">${promedioGeneral}</h4><p class="text-muted mb-0">Promedio General</p></div></div></div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-7">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-header fw-bold bg-white">Horario de Hoy</div>
+                        <div class="list-group list-group-flush">
+                            ${clasesHoy.length > 0 ? clasesHoy.map(c => `
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">${c.nombreasignatura}</h6>
+                                        <small class="text-muted">Prof. ${c.nombreprofesor} ${c.apellidoprofesor} | Aula: ${c.nombreaula}</small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">${new Date(c.horainicio).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})}</span>
+                                </div>`).join('') : '<p class="p-3 text-muted">No tienes clases programadas para hoy.</p>'}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="card h-100 shadow-sm border-0">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">Cuadro de Honor (Top 5)</h5>
+                            ${honorRollHTML}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        contenedor.innerHTML = dashboardHTML;
+    }
+
+    function cerrarSesion() {
+      localStorage.clear();
+      window.location.href = "{{ url_for('index') }}";
     }
 
     // Function to download the schedule as PDF
@@ -343,6 +324,65 @@
         const index = charCode % colors.length;
         return colors[index];
     }
+
+    // This section runs when the window has fully loaded.
+    window.addEventListener('load', async function() {
+        const usuarioNombre = localStorage.getItem("usuarioNombre");
+        const usuarioApellido = localStorage.getItem("usuarioApellido");
+        document.getElementById("usuarioNombre").textContent = `${usuarioNombre || ''} ${usuarioApellido || ''}`;
+        
+        try {
+            const email = localStorage.getItem("usuarioEmail");
+            if (!email) throw new Error("No se encontró el email del usuario.");
+            
+            const response = await fetch(`/api/estudiantes?email=${email}`);
+            const estudiantes = await response.json();
+            
+            if (estudiantes.length > 0) {
+                currentEstudianteId = estudiantes[0].estudiante_id;
+
+                // Generar iniciales para el estudiante (Nombre + Apellido)
+                let inicialesEstudiante = '';
+                if (estudiantes[0].nombreestudiante) { 
+                    inicialesEstudiante += estudiantes[0].nombreestudiante.charAt(0).toUpperCase();
+                } else {
+                    const usuarioNombreLocal = localStorage.getItem("usuarioNombre");
+                    if (usuarioNombreLocal) inicialesEstudiante += usuarioNombreLocal.charAt(0).toUpperCase();
+                }
+
+                if (estudiantes[0].apellidoestudiante) { 
+                    inicialesEstudiante += estudiantes[0].apellidoestudiante.charAt(0).toUpperCase();
+                } else {
+                    const usuarioApellidoLocal = localStorage.getItem("usuarioApellido");
+                    if (usuarioApellidoLocal) inicialesEstudiante += usuarioApellidoLocal.charAt(0).toUpperCase();
+                }
+
+                if (!inicialesEstudiante) {
+                    inicialesEstudiante = 'ES'; // Por defecto si no hay nombre/apellido
+                }
+                document.getElementById('user-avatar-estudiante').textContent = inicialesEstudiante;
+
+                // Asignar color dinámico basado en la primera letra del nombre del estudiante
+                const colorClassEstudiante = getColorClassForInitial(estudiantes[0].nombreestudiante || localStorage.getItem("usuarioNombre"));
+                document.getElementById('user-avatar-estudiante').classList.add(colorClassEstudiante);
+
+                // Attach event listeners for navigation AFTER DOM is loaded
+                document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
+                    link.addEventListener('click', function(event) {
+                        event.preventDefault(); // Prevent default link behavior
+                        const view = this.dataset.view; // Get view from data-view attribute
+                        cargarVista(view);
+                    });
+                });
+
+                cargarVista('dashboard'); // Initial load of dashboard
+            } else { 
+                throw new Error("Estudiante no encontrado en la base de datos."); 
+            }
+        } catch (error) {
+            document.getElementById("contenido-principal").innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
+        }
+    });
 </script>
 </body>
 </html>

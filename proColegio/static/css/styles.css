@@ -234,3 +234,11 @@ body {
     --bs-btn-hover-bg: var(--accent-blue-hover);
     --bs-btn-hover-border-color: var(--accent-blue-hover);
 }
+
+/* Specific for Honor Roll badges */
+.list-group-item .badge {
+    min-width: 25px; /* Ensure badge is a consistent size */
+    text-align: center;
+    vertical-align: middle;
+    line-height: 1; /* Adjust line height for better vertical centering */
+}
