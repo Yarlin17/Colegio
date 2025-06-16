@@ -12,7 +12,7 @@ def get_db_connection():
     return psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",
-        password="1234",
+        password="123456789",
         host="localhost",
         port=5432
     )
@@ -566,30 +566,47 @@ def get_cuadro_honor():
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    query = """
-        SELECT
-            e.Estudiante_ID,
-            e.NombreEstudiante,
-            e.ApellidoEstudiante,
-            AVG(n.nota) AS promedio_general
-        FROM Estudiantes e
-        JOIN Notas n ON e.Estudiante_ID = n.estudiante_id
-        GROUP BY e.Estudiante_ID, e.NombreEstudiante, e.ApellidoEstudiante
-        ORDER BY promedio_general DESC
-        LIMIT 5;
-    """
-    
+    corte = request.args.get('corte', type=int)
+
+    if corte:
+        query = """
+            SELECT
+                e.Estudiante_ID,
+                e.NombreEstudiante,
+                e.ApellidoEstudiante,
+                AVG(n.nota) AS promedio_corte
+            FROM Estudiantes e
+            JOIN Notas n ON e.Estudiante_ID = n.estudiante_id
+            WHERE n.corte = %s
+            GROUP BY e.Estudiante_ID, e.NombreEstudiante, e.ApellidoEstudiante
+            ORDER BY promedio_corte DESC
+            LIMIT 5;
+        """
+        params = (corte,)
+    else:
+        query = """
+            SELECT
+                e.Estudiante_ID,
+                e.NombreEstudiante,
+                e.ApellidoEstudiante,
+                AVG(n.nota) AS promedio_corte
+            FROM Estudiantes e
+            JOIN Notas n ON e.Estudiante_ID = n.estudiante_id
+            GROUP BY e.Estudiante_ID, e.NombreEstudiante, e.ApellidoEstudiante
+            ORDER BY promedio_corte DESC
+            LIMIT 5;
+        """
+        params = ()
+
     try:
-        cur.execute(query)
+        cur.execute(query, params)
         rows = cur.fetchall()
-        
         processed_rows = []
         for row in rows:
             row_dict = dict(row)
-            if 'promedio_general' in row_dict and isinstance(row_dict['promedio_general'], Decimal):
-                row_dict['promedio_general'] = float(row_dict['promedio_general'])
+            if 'promedio_corte' in row_dict and isinstance(row_dict['promedio_corte'], Decimal):
+                row_dict['promedio_corte'] = float(row_dict['promedio_corte'])
             processed_rows.append(row_dict)
-            
         return jsonify(processed_rows), 200
     except (Exception, psycopg2.Error) as error:
         print(f"Error al obtener el cuadro de honor: {error}")

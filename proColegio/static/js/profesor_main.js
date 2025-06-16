@@ -86,10 +86,6 @@ async function displayDashboard(contenedor) {
     const asistenciaResponse = await fetch(`/api/asistencia?profesor_id=${currentProfesorId}`);
     const allAsistencia = await asistenciaResponse.json();
     let averageAttendance = allAsistencia.length > 0 ? Math.round(allAsistencia.filter(a => a.presente).length / allAsistencia.length * 100) + '%' : 'N/A';
-    
-    // Fetch Honor Roll Data
-    const honorRollResponse = await fetch('/api/cuadro_honor');
-    const honorRoll = await honorRollResponse.json();
 
     const kpiData = [
         { title: 'Clases Hoy', value: clasesHoy.length, icon: 'bi-journal-bookmark-fill', color: 'text-primary', bg: 'bg-primary-subtle' },
@@ -100,11 +96,12 @@ async function displayDashboard(contenedor) {
 
     const kpiHTML = kpiData.map(kpi => `
         <div class="col">
-            <div class="card kpi-card border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="kpi-icon ${kpi.bg} ${kpi.color}"><i class="bi ${kpi.icon}"></i></div>
-                    <div class="kpi-text">
-                        <h3>${kpi.value}</h3><p class="text-muted mb-0">${kpi.title}</p>
+            <div class="card kpi-card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <div class="kpi-icon ${kpi.bg} ${kpi.color} mb-2"><i class="bi ${kpi.icon}"></i></div>
+                    <div class="kpi-text text-center">
+                        <h3>${kpi.value}</h3>
+                        <p class="text-muted mb-0">${kpi.title}</p>
                     </div>
                 </div>
             </div>
@@ -122,19 +119,8 @@ async function displayDashboard(contenedor) {
                 <button class="btn btn-outline-primary btn-sm" onclick="cargarVistaProfesor('asistencia')">Asistencia</button>
             </div>`
         )).join('') : '<p class="text-muted mt-3">No tiene clases programadas para hoy.</p>';
-    
-    const honorRollHTML = honorRoll.length > 0 ? `
-        <div class="list-group list-group-flush">
-            ${honorRoll.map((student, index) => `
-                <div class="list-group-item d-flex align-items-center px-0">
-                    <span class="badge bg-primary rounded-pill me-3">${index + 1}</span>
-                    <div>
-                        <strong>${student.nombreestudiante} ${student.apellidoestudiante}</strong>
-                        <br><small class="text-muted">Promedio: ${student.promedio_general.toFixed(2)}</small>
-                    </div>
-                </div>`).join('')}
-        </div>` : '<p class="text-muted">No hay estudiantes en el cuadro de honor aún.</p>';
 
+    // Panel simétrico: solo mostrar dos columnas, una para clases del día y otra vacía para simetría visual
     const dashboardHTML = `
         <div class="mb-4">
             <h3 class="fw-bold">Bienvenido, ${profesorDatosGenerales.nombreprofesor}</h3>
@@ -142,11 +128,16 @@ async function displayDashboard(contenedor) {
         </div>
         <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4 mb-4">${kpiHTML}</div>
         <div class="row g-4">
-            <div class="col-lg-7">
-                <div class="card h-100 border-0 shadow-sm"><div class="card-body"><h5 class="card-title fw-bold">Próximas Clases del Día</h5>${clasesHoyHTML}</div></div>
+            <div class="col-lg-6">
+                <div class="card h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title fw-bold">Próximas Clases del Día</h5>
+                        ${clasesHoyHTML}
+                    </div>
+                </div>
             </div>
-            <div class="col-lg-5">
-                <div class="card h-100 border-0 shadow-sm"><div class="card-body"><h5 class="card-title fw-bold">Cuadro de Honor (Top 5)</h5>${honorRollHTML}</div></div>
+            <div class="col-lg-6">
+                <!-- Columna vacía para simetría visual -->
             </div>
         </div>`;
     contenedor.innerHTML = dashboardHTML;
@@ -164,6 +155,71 @@ async function cargarVistaProfesor(seccion) {
   }
 
   const backButton = `<button class="btn btn-secondary mb-3" onclick="cargarVistaProfesor('dashboard')"><i class="bi bi-arrow-left me-2"></i>Volver al Panel</button>`;
+
+  if (seccion === 'cuadro-honor') {
+    // Mostrar botones para cada corte y general
+    let honorRollHTML = `
+      <div class="mb-3 d-flex flex-wrap gap-2">
+        <button class="btn btn-primary btn-sm" id="btn-cuadro-general">General</button>
+        <button class="btn btn-outline-primary btn-sm" id="btn-cuadro-corte-1">Corte 1</button>
+        <button class="btn btn-outline-primary btn-sm" id="btn-cuadro-corte-2">Corte 2</button>
+        <button class="btn btn-outline-primary btn-sm" id="btn-cuadro-corte-3">Corte 3</button>
+      </div>
+      <div id="cuadro-honor-content"></div>
+    `;
+    contenedor.innerHTML = `${backButton}
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          ${honorRollHTML}
+        </div>
+      </div>
+    `;
+
+    // Función para renderizar el cuadro de honor según el corte
+    async function renderCuadroHonor(corte) {
+      let url = '/api/cuadro_honor';
+      let title = 'Cuadro de Honor General (Top 5)';
+      if (corte) {
+        url += `?corte=${corte}`;
+        title = `Cuadro de Honor Corte ${corte} (Top 5)`;
+      }
+      const res = await fetch(url);
+      const honorRoll = await res.json();
+      document.getElementById('cuadro-honor-content').innerHTML = `
+        <h5 class="fw-bold mb-3"><i class="bi bi-trophy-fill me-2"></i>${title}</h5>
+        ${
+          honorRoll.length > 0
+          ? `<div class="list-group list-group-flush">
+              ${honorRoll.map((student, index) => `
+                <div class="list-group-item d-flex align-items-center px-0">
+                  <span class="badge bg-primary rounded-pill me-3">${index + 1}</span>
+                  <div>
+                    <strong>${student.nombreestudiante} ${student.apellidoestudiante}</strong>
+                    <br><small class="text-muted">Promedio: ${student.promedio_corte.toFixed(2)}</small>
+                  </div>
+                </div>
+              `).join('')}
+            </div>`
+          : '<p class="text-muted">No hay estudiantes en el cuadro de honor para este corte.</p>'
+        }
+      `;
+      // Actualiza estilos de los botones
+      document.getElementById('btn-cuadro-general').className = corte ? 'btn btn-outline-primary btn-sm' : 'btn btn-primary btn-sm';
+      for (let i = 1; i <= 3; i++) {
+        document.getElementById(`btn-cuadro-corte-${i}`).className = (corte === i) ? 'btn btn-primary btn-sm' : 'btn btn-outline-primary btn-sm';
+      }
+    }
+
+    // Eventos para los botones
+    document.getElementById('btn-cuadro-general').onclick = () => renderCuadroHonor(undefined);
+    document.getElementById('btn-cuadro-corte-1').onclick = () => renderCuadroHonor(1);
+    document.getElementById('btn-cuadro-corte-2').onclick = () => renderCuadroHonor(2);
+    document.getElementById('btn-cuadro-corte-3').onclick = () => renderCuadroHonor(3);
+
+    // Mostrar general por defecto
+    renderCuadroHonor(undefined);
+    return;
+  }
 
   switch (seccion) {
     case 'dashboard':

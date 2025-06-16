@@ -352,7 +352,7 @@ if __name__ == "__main__":
     conn = psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",         # Cambia por tu usuario de PostgreSQL
-        password="1234",         # Cambia por tu contraseña de PostgreSQL
+        password="123456789",         # Cambia por tu contraseña de PostgreSQL
         host="localhost",
         port=5432
     )

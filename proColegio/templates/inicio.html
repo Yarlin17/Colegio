@@ -28,6 +28,7 @@
             <a class="nav-link" href="#" data-view="docentes"><i class="bi bi-people-fill me-2"></i> Docentes</a>
             <a class="nav-link" href="#" data-view="aulas"><i class="bi bi-door-open-fill me-2"></i> Aulas</a>
             <a class="nav-link" href="#" data-view="asignaturas"><i class="bi bi-journal-bookmark-fill me-2"></i> Asignaturas</a>
+            <a class="nav-link" href="#" data-view="cuadro-honor"><i class="bi bi-trophy-fill me-2"></i> Cuadro de Honor</a>
         </nav>
         <div class="mt-auto">
             <a class="nav-link logout-button" href="#" onclick="cerrarSesion()">
@@ -213,10 +214,70 @@
                             <small class="text-muted">${item.descripcionasignatura}</small>
                         </div>`).join('') + `</div>`;
                     break;
+                case 'cuadro-honor':
+                    // Mostrar botones para cada corte y general
+                    let honorRollHTML = `
+                        <div class="mb-3 d-flex flex-wrap gap-2">
+                            <button class="btn btn-primary btn-sm" id="btn-cuadro-general">General</button>
+                            <button class="btn btn-outline-primary btn-sm" id="btn-cuadro-corte-1">Corte 1</button>
+                            <button class="btn btn-outline-primary btn-sm" id="btn-cuadro-corte-2">Corte 2</button>
+                            <button class="btn btn-outline-primary btn-sm" id="btn-cuadro-corte-3">Corte 3</button>
+                        </div>
+                        <div id="cuadro-honor-content"></div>
+                    `;
+                    contentHTML = `
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body">
+                                ${honorRollHTML}
+                            </div>
+                        </div>
+                    `;
+                    break;
                 default:
                     contentHTML = `<div class="alert alert-warning">Sección no disponible.</div>`;
             }
             contenedor.innerHTML = (seccion !== 'dashboard' ? backButton : '') + contentHTML;
+
+            // Lógica para los botones del cuadro de honor
+            if (seccion === 'cuadro-honor') {
+                async function renderCuadroHonor(corte) {
+                    let url = '/api/cuadro_honor';
+                    let title = 'Cuadro de Honor General (Top 5)';
+                    if (corte) {
+                        url += `?corte=${corte}`;
+                        title = `Cuadro de Honor Corte ${corte} (Top 5)`;
+                    }
+                    const res = await fetch(url);
+                    const honorRoll = await res.json();
+                    document.getElementById('cuadro-honor-content').innerHTML = `
+                        <h5 class="fw-bold mb-3"><i class="bi bi-trophy-fill me-2"></i>${title}</h5>
+                        ${
+                            honorRoll.length > 0
+                            ? `<div class="list-group list-group-flush">
+                                ${honorRoll.map((student, index) => `
+                                    <div class="list-group-item d-flex align-items-center px-0">
+                                        <span class="badge bg-primary rounded-pill me-3">${index + 1}</span>
+                                        <div>
+                                            <strong>${student.nombreestudiante} ${student.apellidoestudiante}</strong>
+                                            <br><small class="text-muted">Promedio: ${student.promedio_corte.toFixed(2)}</small>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>`
+                            : '<p class="text-muted">No hay estudiantes en el cuadro de honor para este corte.</p>'
+                        }
+                    `;
+                    document.getElementById('btn-cuadro-general').className = corte ? 'btn btn-outline-primary btn-sm' : 'btn btn-primary btn-sm';
+                    for (let i = 1; i <= 3; i++) {
+                        document.getElementById(`btn-cuadro-corte-${i}`).className = (corte === i) ? 'btn btn-primary btn-sm' : 'btn btn-outline-primary btn-sm';
+                    }
+                }
+                document.getElementById('btn-cuadro-general').onclick = () => renderCuadroHonor(undefined);
+                document.getElementById('btn-cuadro-corte-1').onclick = () => renderCuadroHonor(1);
+                document.getElementById('btn-cuadro-corte-2').onclick = () => renderCuadroHonor(2);
+                document.getElementById('btn-cuadro-corte-3').onclick = () => renderCuadroHonor(3);
+                renderCuadroHonor(undefined);
+            }
         } catch (error) {
             contenedor.innerHTML = `<div class="alert alert-danger">Error al cargar la vista: ${error.message}</div>`;
         }
@@ -226,30 +287,16 @@
         if (!currentEstudianteId) return;
         contenedor.innerHTML = `<div class="d-flex justify-content-center mt-5"><div class="spinner-border" role="status"></div></div>`;
 
-        const [notasRes, horariosRes, honorRollRes] = await Promise.all([
+        const [notasRes, horariosRes] = await Promise.all([
             fetch(`/api/notas?estudiante_id=${currentEstudianteId}`),
-            fetch(`/api/horarios?estudiante_id=${currentEstudianteId}`),
-            fetch('/api/cuadro_honor') // Fetch honor roll data
+            fetch(`/api/horarios?estudiante_id=${currentEstudianteId}`)
         ]);
         const notas = await notasRes.json();
         const horarios = await horariosRes.json();
-        const honorRoll = await honorRollRes.json();
 
         let promedioGeneral = notas.length > 0 ? (notas.reduce((acc, n) => acc + n.nota, 0) / notas.length).toFixed(2) : "N/A";
         const today = new Date().toLocaleDateString('es-ES', { weekday: 'long' });
         const clasesHoy = horarios.filter(h => h.diasemana.toLowerCase() === today.toLowerCase());
-
-        const honorRollHTML = honorRoll.length > 0 ? `
-            <div class="list-group list-group-flush">
-                ${honorRoll.map((student, index) => `
-                    <div class="list-group-item d-flex align-items-center px-0">
-                        <span class="badge bg-primary rounded-pill me-3">${index + 1}</span>
-                        <div>
-                            <strong>${student.nombreestudiante} ${student.apellidoestudiante}</strong>
-                            <br><small class="text-muted">Promedio: ${student.promedio_general.toFixed(2)}</small>
-                        </div>
-                    </div>`).join('')}
-            </div>` : '<p class="text-muted">No hay estudiantes en el cuadro de honor aún.</p>';
 
 
         const dashboardHTML = `
@@ -274,14 +321,6 @@
                                     </div>
                                     <span class="badge bg-primary rounded-pill">${new Date(c.horainicio).toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'})}</span>
                                 </div>`).join('') : '<p class="p-3 text-muted">No tienes clases programadas para hoy.</p>'}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-5">
-                    <div class="card h-100 shadow-sm border-0">
-                        <div class="card-body">
-                            <h5 class="card-title fw-bold">Cuadro de Honor (Top 5)</h5>
-                            ${honorRollHTML}
                         </div>
                     </div>
                 </div>
