@@ -9,12 +9,14 @@ bcrypt = Bcrypt(app)
 
 
 def get_db_connection():
+    # MODIFICADO: Se añade client_encoding='utf8' para asegurar la codificación correcta.
     return psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",
-        password="123456789",
+        password="1234",
         host="localhost",
-        port=5432
+        port=5432,
+        client_encoding='utf8' 
     )
 
 # Route for the login page (index.html)
@@ -342,20 +344,28 @@ def create_or_update_nota():
     conn = None
     try:
         conn = get_db_connection()
-        cur = conn.cursor()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor) # Use DictCursor to get column names
 
-        cur.execute("""
-            SELECT nota_id FROM Notas
-            WHERE estudiante_id = %s AND asignatura_id = %s AND profesor_id = %s AND corte = %s AND tipo_nota = %s
-        """, (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota))
-        existing_nota = cur.fetchone()
+        # Determinar si es una actualización o una nueva nota
+        cur.execute("SELECT nota FROM Notas WHERE estudiante_id = %s AND asignatura_id = %s AND profesor_id = %s AND corte = %s AND tipo_nota = %s",
+                    (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota))
+        existing_nota_record = cur.fetchone()
+        
+        # Convertir la nota entrante a Decimal para una comparación precisa
+        new_nota_decimal = Decimal(str(nota))
+        
+        # Solo crear notificación si la nota cambia.
+        # existing_nota_record será None si es la primera vez que se ingresa esta nota
+        # o si la nota existente es diferente.
+        should_notify = existing_nota_record is None or existing_nota_record['nota'] != new_nota_decimal
 
-        if existing_nota:
+        if existing_nota_record:
             cur.execute("""
                 UPDATE Notas SET nota = %s, nombrecolumnaextra = %s
-                WHERE nota_id = %s
-            """, (nota, nombre_columna_extra, existing_nota[0])) 
-            nota_id = existing_nota[0]
+                WHERE estudiante_id = %s AND asignatura_id = %s AND profesor_id = %s AND corte = %s AND tipo_nota = %s
+                RETURNING nota_id
+            """, (nota, nombre_columna_extra, estudiante_id, asignatura_id, profesor_id, corte, tipo_nota))
+            nota_id = cur.fetchone()[0]
         else:
             cur.execute("""
                 INSERT INTO Notas (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nombrecolumnaextra, nota)
@@ -363,11 +373,29 @@ def create_or_update_nota():
                 RETURNING nota_id
             """, (estudiante_id, asignatura_id, profesor_id, corte, tipo_nota, nombre_columna_extra, nota)) 
             nota_id = cur.fetchone()[0]
+        
+        # --- AÑADIDO: Lógica de Notificación ---
+        if should_notify:
+            # Obtener nombres para el mensaje de la notificación
+            cur.execute("SELECT NombreProfesor, ApellidoProfesor FROM Profesores WHERE Profesor_ID = %s", (profesor_id,))
+            profesor = cur.fetchone()
+            cur.execute("SELECT NombreAsignatura FROM Asignaturas WHERE Asignatura_ID = %s", (asignatura_id,))
+            asignatura = cur.fetchone()
+            
+            if profesor and asignatura:
+                mensaje = f"El profesor {profesor['nombreprofesor']} {profesor['apellidoprofesor']} ha actualizado tus notas en la asignatura de {asignatura['nombreasignatura']}."
+                cur.execute("""
+                    INSERT INTO Notificaciones (Estudiante_ID, Mensaje, Url)
+                    VALUES (%s, %s, %s)
+                """, (estudiante_id, mensaje, '/mis-notas')) # URL para redirigir en el futuro
+
+        # ------------------------------------
 
         conn.commit()
         return jsonify({"success": True, "nota_id": nota_id, "message": "Nota guardada correctamente"}), 200
     except (Exception, psycopg2.Error) as error:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         print(f"Error al guardar la nota: {error}")
         return jsonify({"success": False, "message": f"Error al guardar la nota: {error}"}), 500
     finally:
@@ -615,6 +643,65 @@ def get_cuadro_honor():
         if conn:
             cur.close()
             conn.close()
+
+# --- AÑADIDO: Endpoints de Notificaciones ---
+
+@app.route('/api/notificaciones', methods=['GET'])
+def get_notificaciones():
+    estudiante_id = request.args.get('estudiante_id')
+    if not estudiante_id:
+        return jsonify({"success": False, "message": "Falta el ID del estudiante"}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cur.execute("""
+            SELECT Notificacion_ID, Mensaje, FechaCreacion, Leida, Url
+            FROM Notificaciones
+            WHERE Estudiante_ID = %s
+            ORDER BY FechaCreacion DESC
+            LIMIT 20
+        """, (estudiante_id,))
+        notificaciones = cur.fetchall()
+        return jsonify([dict(row) for row in notificaciones])
+    except (Exception, psycopg2.Error) as error:
+        print(f"Error al obtener notificaciones: {error}")
+        return jsonify({"success": False, "message": "Error del servidor al obtener notificaciones"}), 500
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+@app.route('/api/notificaciones/marcar_leidas', methods=['POST'])
+def marcar_notificaciones_leidas():
+    data = request.json
+    estudiante_id = data.get('estudiante_id')
+    if not estudiante_id:
+        return jsonify({"success": False, "message": "Falta el ID del estudiante"}), 400
+    
+    conn = None
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE Notificaciones
+            SET Leida = TRUE
+            WHERE Estudiante_ID = %s AND Leida = FALSE
+        """, (estudiante_id,))
+        conn.commit()
+        return jsonify({"success": True, "message": "Notificaciones marcadas como leídas"})
+    except (Exception, psycopg2.Error) as error:
+        if conn:
+            conn.rollback()
+        print(f"Error al marcar notificaciones como leídas: {error}")
+        return jsonify({"success": False, "message": "Error del servidor"}), 500
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+# ----------------------------------------
 
 @app.route('/favicon.ico')
 def favicon():

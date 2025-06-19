@@ -11,6 +11,41 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <style>
+        /* AÑADIDO: Estilos para notificaciones */
+        .notification-bell {
+            position: relative;
+        }
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: translate(50%, -50%);
+            font-size: 0.6em;
+            width: 1.5em;
+            height: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dropdown-menu-notifications {
+            width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .notification-item {
+            white-space: normal;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--bs-dropdown-divider-color);
+        }
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        .notification-item .time {
+            font-size: 0.75em;
+            color: var(--bs-secondary-color);
+        }
+    </style>
 </head>
 <body class="bg-light">
 
@@ -41,6 +76,16 @@
         <header class="d-flex justify-content-between align-items-center mb-4">
             <h2 id="header-title" class="fs-4 fw-bold mb-0">Mi Panel</h2>
             <div class="user-info d-flex align-items-center">
+                <div class="dropdown me-3">
+                    <button class="btn btn-light notification-bell" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" onclick="markNotificationsAsRead()">
+                        <i class="bi bi-bell-fill"></i>
+                        <span id="notification-badge" class="badge rounded-pill bg-danger notification-badge d-none">0</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-notifications" aria-labelledby="notificationDropdown" id="notification-list">
+                        <li><a class="dropdown-item text-muted text-center" href="#">No hay notificaciones nuevas</a></li>
+                    </ul>
+                </div>
+
                 <div id="user-avatar-estudiante" class="user-avatar rounded-circle me-2 d-flex align-items-center justify-content-center text-white fw-bold"></div>
                 <div>
                     <div id="usuarioNombre" class="fw-semibold"></div>
@@ -61,16 +106,88 @@
 
 <script>
     let currentEstudianteId = null;
+    let notificationInterval;
 
-    // Moved cargarVista and other functions outside window.onload for global scope
-    // so they are available when event listeners are attached.
+    // --- AÑADIDO: Lógica de Notificaciones ---
+
+    // Función para calcular tiempo relativo (ej. "hace 5 minutos")
+    function timeAgo(date) {
+        const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+        let interval = seconds / 31536000;
+        if (interval > 1) return Math.floor(interval) + " años";
+        interval = seconds / 2592000;
+        if (interval > 1) return Math.floor(interval) + " meses";
+        interval = seconds / 86400;
+        if (interval > 1) return Math.floor(interval) + " días";
+        interval = seconds / 3600;
+        if (interval > 1) return Math.floor(interval) + " horas";
+        interval = seconds / 60;
+        if (interval > 1) return "hace " + Math.floor(interval) + " minutos";
+        return "hace " + Math.floor(seconds) + " segundos";
+    }
+
+    // Función que consulta las notificaciones al servidor
+    async function checkNotifications() {
+        if (!currentEstudianteId) return;
+        try {
+            const response = await fetch(`/api/notificaciones?estudiante_id=${currentEstudianteId}`);
+            const notifications = await response.json();
+            
+            const unreadCount = notifications.filter(n => !n.leida).length;
+            const badge = document.getElementById('notification-badge');
+            const list = document.getElementById('notification-list');
+
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.classList.remove('d-none');
+            } else {
+                badge.classList.add('d-none');
+            }
+
+            if (notifications.length > 0) {
+                list.innerHTML = notifications.map(n => `
+                    <li>
+                        <div class="notification-item">
+                            <p class="mb-1">${n.mensaje}</p>
+                            <div class="time">${timeAgo(n.fechacreacion)}</div>
+                        </div>
+                    </li>
+                `).join('');
+            } else {
+                list.innerHTML = '<li><a class="dropdown-item text-muted text-center" href="#">No hay notificaciones</a></li>';
+            }
+
+        } catch (error) {
+            console.error("Error al verificar notificaciones:", error);
+        }
+    }
+
+    // Función para marcar las notificaciones como leídas
+    async function markNotificationsAsRead() {
+        if (!currentEstudianteId) return;
+        const badge = document.getElementById('notification-badge');
+        // Solo enviar la petición si hay notificaciones sin leer
+        if (!badge.classList.contains('d-none')) {
+            try {
+                await fetch('/api/notificaciones/marcar_leidas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ estudiante_id: currentEstudianteId })
+                });
+                // Ocultar el badge inmediatamente para una respuesta visual rápida
+                badge.classList.add('d-none');
+            } catch (error) {
+                console.error("Error al marcar notificaciones como leídas:", error);
+            }
+        }
+    }
+    // ----------------------------------------
 
     async function cargarVista(seccion) {
         const contenedor = document.getElementById("contenido-principal");
         contenedor.innerHTML = `<div class="d-flex justify-content-center mt-5"><div class="spinner-border" role="status"></div></div>`;
         
         document.querySelectorAll('.sidebar .nav-link').forEach(link => link.classList.remove('active'));
-        // Find the active link using the data-view attribute
         const activeLink = document.querySelector(`.sidebar .nav-link[data-view="${seccion}"]`);
         if (activeLink) {
             activeLink.classList.add('active');
@@ -330,6 +447,7 @@
 
     function cerrarSesion() {
       localStorage.clear();
+      clearInterval(notificationInterval); // Limpiar el intervalo al cerrar sesión
       window.location.href = "{{ url_for('index') }}";
     }
 
@@ -380,7 +498,6 @@
             if (estudiantes.length > 0) {
                 currentEstudianteId = estudiantes[0].estudiante_id;
 
-                // Generar iniciales para el estudiante (Nombre + Apellido)
                 let inicialesEstudiante = '';
                 if (estudiantes[0].nombreestudiante) { 
                     inicialesEstudiante += estudiantes[0].nombreestudiante.charAt(0).toUpperCase();
@@ -397,24 +514,26 @@
                 }
 
                 if (!inicialesEstudiante) {
-                    inicialesEstudiante = 'ES'; // Por defecto si no hay nombre/apellido
+                    inicialesEstudiante = 'ES'; 
                 }
                 document.getElementById('user-avatar-estudiante').textContent = inicialesEstudiante;
 
-                // Asignar color dinámico basado en la primera letra del nombre del estudiante
                 const colorClassEstudiante = getColorClassForInitial(estudiantes[0].nombreestudiante || localStorage.getItem("usuarioNombre"));
                 document.getElementById('user-avatar-estudiante').classList.add(colorClassEstudiante);
 
-                // Attach event listeners for navigation AFTER DOM is loaded
                 document.querySelectorAll('.sidebar-nav .nav-link').forEach(link => {
                     link.addEventListener('click', function(event) {
-                        event.preventDefault(); // Prevent default link behavior
-                        const view = this.dataset.view; // Get view from data-view attribute
+                        event.preventDefault(); 
+                        const view = this.dataset.view; 
                         cargarVista(view);
                     });
                 });
 
-                cargarVista('dashboard'); // Initial load of dashboard
+                // Iniciar la carga del dashboard y las notificaciones
+                cargarVista('dashboard'); 
+                checkNotifications(); // Primera comprobación inmediata
+                notificationInterval = setInterval(checkNotifications, 30000); // Comprobar cada 30 segundos
+
             } else { 
                 throw new Error("Estudiante no encontrado en la base de datos."); 
             }

@@ -10,6 +10,7 @@ def init_db(conn):
     with conn.cursor() as cur:
         # Borrar tablas si existen (orden inverso para evitar problemas de FK)
         cur.execute("DROP TABLE IF EXISTS Asistencia CASCADE;")
+        cur.execute("DROP TABLE IF EXISTS Notificaciones CASCADE;") # <-- AÑADIDO
         cur.execute("DROP TABLE IF EXISTS Horarios CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Notas CASCADE;")
         cur.execute("DROP TABLE IF EXISTS Asesorias CASCADE;")
@@ -120,6 +121,19 @@ def init_db(conn):
             CONSTRAINT chk_HoraAsesoria CHECK (HoraFin > HoraInicio)
         );
         """)
+
+        # --- AÑADIDO: Tabla de Notificaciones ---
+        cur.execute("""
+        CREATE TABLE Notificaciones (
+            Notificacion_ID SERIAL PRIMARY KEY,
+            Estudiante_ID INTEGER REFERENCES Estudiantes(Estudiante_ID) ON DELETE CASCADE,
+            Mensaje TEXT NOT NULL,
+            FechaCreacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            Leida BOOLEAN DEFAULT FALSE,
+            Url VARCHAR(255)
+        );
+        """)
+        # ----------------------------------------
 
 
         # Insertar datos en Grupos
@@ -352,7 +366,7 @@ if __name__ == "__main__":
     conn = psycopg2.connect(
         dbname="colegio_pablo_neruda",
         user="postgres",         # Cambia por tu usuario de PostgreSQL
-        password="123456789",         # Cambia por tu contraseña de PostgreSQL
+        password="1234",         # Cambia por tu contraseña de PostgreSQL
         host="localhost",
         port=5432
     )
