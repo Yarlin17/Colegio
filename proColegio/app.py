@@ -1,6 +1,6 @@
 import psycopg2
 import psycopg2.extras
-from flask import Flask, jsonify, request, render_template, url_for, send_from_directory
+from flask import Flask, jsonify, request, render_template, url_for, send_from_directory, make_response
 from flask_bcrypt import Bcrypt
 from decimal import Decimal
 
@@ -27,11 +27,23 @@ def index():
 # Route for the main panel page (inicio.html)
 @app.route('/inicio')
 def inicio():
-    return render_template('inicio.html')
+    response = make_response(render_template('inicio.html'))
+    # --- AÑADIDO: Encabezados para prevenir el caché ---
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    # ---------------------------------------------
+    return response
 
 @app.route('/profesor')
 def profesor():
-    return render_template('profesor.html')
+    response = make_response(render_template('profesor.html'))
+    # --- AÑADIDO: Encabezados para prevenir el caché ---
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    # ---------------------------------------------
+    return response
 
 @app.route('/api/login', methods=['POST'])
 def login():

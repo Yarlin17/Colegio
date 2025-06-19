@@ -46,7 +46,65 @@
         </main>
     </div>
 
+    <div class="modal fade" id="sessionActiveModal" tabindex="-1" aria-labelledby="sessionActiveModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sessionActiveModalLabel">
+                        <i class="bi bi-info-circle-fill text-primary me-2"></i>Sesión Activa
+                    </h5>
+                </div>
+                <div class="modal-body">
+                    <p>Ya has iniciado sesión en el sistema.</p>
+                    <p class="mb-0">Para ingresar con otro usuario, primero debes <strong>cerrar la sesión</strong> actual desde tu panel.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="goToPanelBtn">Ir a mi Panel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // ================================================================== //
+    //          SCRIPT FINAL Y DEFINITIVO PARA LA PÁGINA DE LOGIN         //
+    // ================================================================== //
+
+    // Función que verifica si hay sesión y muestra el modal
+    function checkSessionAndShowModal() {
+        const userType = localStorage.getItem('usuarioTipo');
+
+        if (userType) {
+            const modalElement = document.getElementById('sessionActiveModal');
+            // Prevenimos que se cree un modal sobre otro si el usuario navega muy rápido
+            const sessionModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+            sessionModal.show();
+
+            document.getElementById('goToPanelBtn').addEventListener('click', function() {
+                if (userType === 'profesor') {
+                    window.location.href = "{{ url_for('profesor') }}";
+                } else {
+                    window.location.href = "{{ url_for('inicio') }}";
+                }
+            });
+        }
+    }
+
+    // 1. Ejecutamos la verificación al cargar la página por primera vez
+    checkSessionAndShowModal();
+
+    // 2. Ejecutamos la verificación DE NUEVO si la página se muestra desde la caché (al usar "Atrás")
+    window.addEventListener('pageshow', function(event) {
+        // event.persisted es true si la página viene de la bfcache
+        if (event.persisted) {
+            checkSessionAndShowModal();
+        }
+    });
+
+
+    // --- El resto de tu código de login permanece igual ---
     window.onload = function () {
       const fechaElemento = document.getElementById("fecha");
       const hoy = new Date();
@@ -79,6 +137,8 @@
           localStorage.setItem("usuarioNombre", result.nombre);
           localStorage.setItem("usuarioApellido", result.apellido);
           localStorage.setItem("usuarioEmail", email);
+          localStorage.setItem("usuarioTipo", result.tipo);
+          
           window.location.href = result.tipo === "profesor" ? "{{ url_for('profesor') }}" : "{{ url_for('inicio') }}";
         } else {
           mostrarAlertaError();

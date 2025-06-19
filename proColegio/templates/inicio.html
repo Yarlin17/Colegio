@@ -49,6 +49,26 @@
 </head>
 <body class="bg-light">
 
+<script>
+    function verificarSesion() {
+        // Si no hay un email de usuario guardado, no hay sesión activa.
+        if (!localStorage.getItem('usuarioEmail')) {
+            // Redirigimos a la página de login.
+            // Usamos replace() para que el usuario no pueda volver a esta página con el botón "Atrás".
+            window.location.replace("{{ url_for('index') }}");
+        }
+    }
+
+    // 1. Verificamos al cargar la página por primera vez.
+    verificarSesion();
+
+    // 2. Verificamos también cuando la página se muestra desde la caché del navegador (al usar el botón "Atrás").
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            verificarSesion();
+        }
+    });
+</script>
 <div class="d-flex">
     <aside class="sidebar d-flex flex-column p-3">
         <div class="sidebar-header mb-4 d-flex align-items-center">
@@ -541,6 +561,7 @@
             document.getElementById("contenido-principal").innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
         }
     });
+    
 </script>
 </body>
 </html>
