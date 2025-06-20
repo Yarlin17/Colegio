@@ -95,6 +95,7 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado lo siguiente:
 4. Inicializa la base de datos y carga datos de ejemplo:
 * Navega a la carpeta ``backend/``.
 * Ejecuta el script ``init_db.py`` para crear las tablas y poblar la base de datos con datos de prueba:
+
   ```
     python init_db.py
     ```
@@ -103,11 +104,17 @@ Este script borrará las tablas existentes y las recreará, insertando datos de 
 **2. Instalación de Dependencias del Backend**
 1. Navega a la carpeta principal de la aplicación Flask: ``proColegio``/.
 2. Instala las dependencias de Python:
-  ``` pip install Flask psycopg2-binary Flask-Bcrypt```
+
+  ```
+ pip install Flask psycopg2-binary Flask-Bcrypt
+```
 
 **3. Ejecución del Backend (Aplicación Flask)**
 1. Desde la carpeta ``proColegio/``, ejecuta la aplicación Flask:
- ``` python app.py```
+ 
+ ```
+ python app.py
+```
 2. El backend se iniciará, por defecto, en ``http://localhost:5000``.
 
 **4. Acceso al Frontend**
