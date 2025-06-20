@@ -162,7 +162,7 @@ El proyecto está siendo desarrollado por estudiantes de la Universidad de Pampl
 * Manuel Sebastian Carvajal Prieto
 
 ## Docente
-* FANNY CASADIEGO CHIQUILLO
+* Fanny Casadiego Chiquillo
 * Harvey Gamboa
 
 ## Colaboradores Extra
