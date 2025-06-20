@@ -73,3 +73,12 @@ El sistema implementa la siguiente lógica central y funcionalidades:
 **Gestión de Dependencias (Backend):**
 
 * requirements.txt(implícito para Flask y sus extensiones)
+
+## Prerrequisitos  
+
+Antes de ejecutar el proyecto, asegúrate de tener instalado lo siguiente:
+
+* Python 3.x
+* pip (gestor de paquetes de Python)
+* PostgreSQL
+* Un navegador web moderno (Chrome, Firefox, Edge, etc.)
