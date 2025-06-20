@@ -118,8 +118,39 @@ Este script borrará las tablas existentes y las recreará, insertando datos de 
 2. El backend se iniciará, por defecto, en ``http://localhost:5000``.
 
 **4. Acceso al Frontend**
+
 Una vez que el backend esté corriendo, puedes acceder a la interfaz de usuario abriendo tu navegador web y navegando a:
 
 * Página de Inicio de Sesión: ``http://localhost:5000/``
 * Panel de Estudiantes: ``http://localhost:5000/inicio`` (se requiere iniciar sesión)
 * Panel de Profesores: ``http://localhost:5000/profesor``(se requiere iniciar sesión)
+
+  ## Estructura del Proyecto
+
+ ```
+   colegio-pablo-neruda/
+├── backend/                                # Scripts para la base de datos
+│   ├── init_db.py                          # Script para inicializar y poblar la DB
+│   └── colegio_pablo_neruda.sql            # Definición del esquema SQL (referencia)
+└── proColegio/                             # Aplicación principal de Flask
+    ├── app.py                              # Rutas de la API y renderizado de templates
+    ├── static/                             # Archivos estáticos (CSS, JS, imágenes)
+    │   ├── css/
+    │   │   └── styles.css                  # Estilos personalizados
+    │   ├── img/
+    │   │   └── logo.jpeg                   # Logo del colegio
+    │   ├── js/
+    │   │   ├── conexion.js                 # (No usado directamente por Flask, posible remanente)
+    │   │   ├── profesor_asistencia.js      # Lógica JS para gestión de asistencia del profesor
+    │   │   ├── profesor_auth.js            # Lógica JS para autenticación (cerrar sesión) del profesor
+    │   │   ├── profesor_clases.js          # Lógica JS para visualización de clases del profesor
+    │   │   ├── profesor_horario.js         # Lógica JS para visualización de horario del profesor
+    │   │   ├── profesor_info.js            # Lógica JS para información general del profesor (no usada en main)
+    │   │   ├── profesor_main.js            # Lógica principal JS para el panel del profesor
+    │   │   ├── profesor_notas.js           # Lógica JS para gestión de notas del profesor
+    │   │   └── servidor.js                 # (No usado directamente por Flask, posible remanente/ejemplo de Node.js)
+    └── templates/                          # Archivos HTML (vistas)
+        ├── index.html                      # Página de inicio de sesión
+        ├── inicio.html                     # Panel del estudiante
+        └── profesor.html                   # Panel del profesor       
+  ```
