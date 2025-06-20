@@ -21,28 +21,28 @@ El sistema implementa la siguiente lógica central y funcionalidades:
 
 **Gestión de Calificaciones (Notas):**
 
-*Para Profesores*: Permite a los profesores registrar, editar y eliminar notas por corte y tipo de nota (trabajos, quices, evaluaciones finales, etc.) para sus clases y estudiantes asignados. Los promedios se calculan dinámicamente.
+* *Para Profesores*: Permite a los profesores registrar, editar y eliminar notas por corte y tipo de nota (trabajos, quices, evaluaciones finales, etc.) para sus clases y estudiantes asignados. Los promedios se calculan dinámicamente.
 
-*Para Estudiantes*: Permite a los estudiantes visualizar sus notas detalladas por asignatura y corte, así como su promedio final por asignatura.
+* *Para Estudiantes*: Permite a los estudiantes visualizar sus notas detalladas por asignatura y corte, así como su promedio final por asignatura.
 
 **Registro y Consulta de Asistencia:**
 
-*Para Profesores*: Facilita el registro de asistencia por clase y fecha.
+* *Para Profesores*: Facilita el registro de asistencia por clase y fecha.
 
-*Para Estudiantes*: Permite a los estudiantes consultar su historial de asistencia por asignatura.
+* *Para Estudiantes*: Permite a los estudiantes consultar su historial de asistencia por asignatura.
 
 **Visualización de Horarios:**
 
-*Para Profesores*: Muestra el horario completo de clases asignadas, incluyendo asignatura, grupo, día, hora de inicio y fin, y aula. Se puede descargar como PDF.
+* *Para Profesores*: Muestra el horario completo de clases asignadas, incluyendo asignatura, grupo, día, hora de inicio y fin, y aula. Se puede descargar como PDF.
 
-*Para Estudiantes*: Muestra el horario de clases asignadas, incluyendo asignatura, docente, día, hora y aula. Se puede descargar como PDF.
+* *Para Estudiantes*: Muestra el horario de clases asignadas, incluyendo asignatura, docente, día, hora y aula. Se puede descargar como PDF.
 
 **Información General:**
 
-*Para Estudiantes*: Acceso a listados de docentes, aulas y asignaturas relacionadas con su grupo.
+* *Para Estudiantes*: Acceso a listados de docentes, aulas y asignaturas relacionadas con su grupo.
 
-*Dashboard Personalizado*: Paneles de control para estudiantes y profesores con resúmenes rápidos de su información relevante (clases del día, promedio general, etc.).
+* *Dashboard Personalizado*: Paneles de control para estudiantes y profesores con resúmenes rápidos de su información relevante (clases del día, promedio general, etc.).
 
-*Cuadro de Honor*: Permite consultar a los 5 estudiantes con los mejores promedios, tanto a nivel general como por corte específico.
+* *Cuadro de Honor*: Permite consultar a los 5 estudiantes con los mejores promedios, tanto a nivel general como por corte específico.
 
-*Notificaciones (Para Estudiantes)*: Los estudiantes reciben notificaciones cuando sus notas son actualizadas por los profesores.
+* *Notificaciones (Para Estudiantes)*: Los estudiantes reciben notificaciones cuando sus notas son actualizadas por los profesores.
