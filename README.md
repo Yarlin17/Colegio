@@ -155,7 +155,7 @@ colegio-pablo-neruda/
         └── profesor.html                   # Panel del profesor       
   ```
 ## Autores
-El proyecto está siendo desarrollado por estudiantes de la Universidad de Pamplona, Facultad de Ingenierías y Arquitectura, Programa Ingeniería de Sistemas, para la asignatura Desarrollo Orientado a Plataformas (2025):
+El proyecto está siendo desarrollado por estudiantes de la Universidad de Pamplona, Facultad de Ingenierías y Arquitectura, Programa Ingeniería de Sistemas, para la asignatura Desarrollo Orientado a Plataformas y Base de datos II (2025):
 
 * Einer Arlex Alvear Jaimes
 * Juan Sebastian Cárdenas Acevedo
@@ -163,7 +163,9 @@ El proyecto está siendo desarrollado por estudiantes de la Universidad de Pampl
 
 ## Docente
 * FANNY CASADIEGO CHIQUILLO
+* Harvey Gamboa
 
 ## Colaboradores Extra
 * Brian acevedo
+* Yarly Guerrero
   
