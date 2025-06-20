@@ -95,7 +95,9 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado lo siguiente:
 4. Inicializa la base de datos y carga datos de ejemplo:
 * Navega a la carpeta ``backend/``.
 * Ejecuta el script ``init_db.py`` para crear las tablas y poblar la base de datos con datos de prueba:
-``` python init_db.py ```
+  ```
+    python init_db.py
+    ```
 Este script borrará las tablas existentes y las recreará, insertando datos de ejemplo para grupos, estudiantes, aulas, profesores, asignaturas, horarios, notas, asistencia y asesorías.
 
 **2. Instalación de Dependencias del Backend**
