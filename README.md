@@ -82,3 +82,16 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado lo siguiente:
 * pip (gestor de paquetes de Python)
 * PostgreSQL
 * Un navegador web moderno (Chrome, Firefox, Edge, etc.)
+
+## Configuración y Ejecución
+**1. Base de Datos**
+1. Asegúrate de tener PostgreSQL instalado y ejecutándose en tu sistema.
+2. Crea una base de datos con el nombre 'colegio_pablo_neruda'.
+3. Configura las credenciales de la base de datos:
+* En proColegio/app.py, verifica la función get_db_connection().
+* Asegúrate de que user y password coincidan con tus credenciales de PostgreSQL.
+* El host y port por defecto son localhost y 5432 respectivamente.
+* Para la inicialización de la base de datos desde backend/init_db.py, también ajusta las credenciales en la sección if __name__ == "__main__":.
+4. Inicializa la base de datos y carga datos de ejemplo:
+* Navega a la carpeta backend/.
+* Ejecuta el script init_db.py para crear las tablas y poblar la base de datos con datos de prueba:
