@@ -9,8 +9,9 @@ El sistema implementa la siguiente lógica central y funcionalidades:
 
 **Roles de Usuario**
 
-*Estudiante*: Accede a su panel para ver sus notas, asistencia, horario, información sobre docentes y asignaturas, y el cuadro de honor.
-*Profesor*: Accede a su panel para gestionar clases, registrar y modificar notas de estudiantes, tomar asistencia, ver su horario completo y acceder al cuadro de honor.
+* *Estudiante*: Accede a su panel para ver sus notas, asistencia, horario, información sobre docentes y asignaturas, y el cuadro de honor.
+
+* *Profesor*: Accede a su panel para gestionar clases, registrar y modificar notas de estudiantes, tomar asistencia, ver su horario completo y acceder al cuadro de honor.
 
 **Funcionalidades del Sistema**
 
