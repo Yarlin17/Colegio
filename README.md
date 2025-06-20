@@ -163,3 +163,7 @@ El proyecto está siendo desarrollado por estudiantes de la Universidad de Pampl
 
 ## Docente
 * FANNY CASADIEGO CHIQUILLO
+
+## Colaboradores Extra
+* Brian acevedo
+  
