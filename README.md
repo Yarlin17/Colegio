@@ -128,7 +128,7 @@ Una vez que el backend esté corriendo, puedes acceder a la interfaz de usuario 
   ## Estructura del Proyecto
 
  ```
-   colegio-pablo-neruda/
+colegio-pablo-neruda/
 ├── backend/                                # Scripts para la base de datos
 │   ├── init_db.py                          # Script para inicializar y poblar la DB
 │   └── colegio_pablo_neruda.sql            # Definición del esquema SQL (referencia)
@@ -154,3 +154,12 @@ Una vez que el backend esté corriendo, puedes acceder a la interfaz de usuario 
         ├── inicio.html                     # Panel del estudiante
         └── profesor.html                   # Panel del profesor       
   ```
+## Autores
+El proyecto está siendo desarrollado por estudiantes de la Universidad de Pamplona, Facultad de Ingenierías y Arquitectura, Programa Ingeniería de Sistemas, para la asignatura Desarrollo Orientado a Plataformas (2025):
+
+* Einer Arlex Alvear Jaimes
+* Juan Sebastian Cárdenas Acevedo
+* Manuel Sebastian Carvajal Prieto
+
+## Docente
+* FANNY CASADIEGO CHIQUILLO
