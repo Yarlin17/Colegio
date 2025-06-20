@@ -1,1 +1,1 @@
-Sistema de Gestión Escolar - Colegio Pablo Neruda
+#  Sistema de Gestión Escolar - Colegio Pablo Neruda
